@@ -11,7 +11,7 @@ terraform {
   backend "oci" {
     bucket    = "terraform-state-bucket"
     namespace = "grqwg4rp3vmd"
-    key       = "fiap-demo/terraform.tfstate"
+    key       = "toggle-master/terraform.tfstate"
     region    = "sa-saopaulo-1"
   }
 }
