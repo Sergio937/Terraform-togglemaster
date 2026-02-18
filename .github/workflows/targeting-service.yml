@@ -2,9 +2,9 @@ name: Targeting Service CI
 
 on:
   push:
-    branches: ["main"]
+    branches: ["Cloud-AWS"]
   pull_request:
-    branches: ["main"]
+    branches: ["Cloud-AWS"]
 
 jobs:
   build_test:
