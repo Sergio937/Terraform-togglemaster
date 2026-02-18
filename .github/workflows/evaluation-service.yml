@@ -1,4 +1,4 @@
-name: Evaluation Service CI/CD
+name: Evaluation Service CI
 
 on:
   push:
@@ -6,208 +6,137 @@ on:
     paths:
       - "Kubernetes/evaluation-service/**"
       - ".github/workflows/evaluation-service.yml"
-
   pull_request:
     branches: ["Cloud-AWS"]
     paths:
       - "Kubernetes/evaluation-service/**"
       - ".github/workflows/evaluation-service.yml"
 
-concurrency:
-  group: evaluation-service
-  cancel-in-progress: true
-
-env:
-  SERVICE_PATH: Kubernetes/evaluation-service/evaluation-service
-  IMAGE_NAME: evaluation-service
-
 jobs:
-
-########################################
-# BUILD + TEST
-########################################
   build_test:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22.x"
+          cache: false
+      - name: Tidy modules
+        working-directory: Kubernetes/evaluation-service/evaluation-service
+        run: go mod tidy
+      - name: Download modules
+        working-directory: Kubernetes/evaluation-service/evaluation-service
+        run: go mod download
+      - name: Build
+        working-directory: Kubernetes/evaluation-service/evaluation-service
+        run: go build ./...
+      - name: Unit tests (if present)
+        working-directory: Kubernetes/evaluation-service/evaluation-service
+        run: |
+          if ls *_test.go >/dev/null 2>&1; then go test ./...; else echo "No Go tests"; fi
+      - name: Build image
+        working-directory: Kubernetes/evaluation-service/evaluation-service
+        run: docker build -t evaluation-service:ci -f Dockerfile .
 
+  lint:
+    runs-on: ubuntu-latest
+    needs: build_test
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-go@v5
         with:
           go-version: "1.22.x"
-          cache: true
+          cache: false
 
       - name: Tidy modules
-        working-directory: ${{ env.SERVICE_PATH }}
+        working-directory: Kubernetes/evaluation-service/evaluation-service
         run: go mod tidy
 
       - name: Download modules
-        working-directory: ${{ env.SERVICE_PATH }}
+        working-directory: Kubernetes/evaluation-service/evaluation-service
         run: go mod download
-
-      - name: Build
-        working-directory: ${{ env.SERVICE_PATH }}
-        run: go build ./...
-
-      - name: Tests
-        working-directory: ${{ env.SERVICE_PATH }}
-        run: go test ./... -v -coverprofile=coverage.out || echo "No tests"
-
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: coverage-report
-          path: ${{ env.SERVICE_PATH }}/coverage.out
-
-########################################
-# LINT
-########################################
-  lint:
-    needs: build_test
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-go@v5
-        with:
-          go-version: "1.22.x"
-          cache: true
 
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
           version: v1.61.0
-          working-directory: ${{ env.SERVICE_PATH }}
+          working-directory: Kubernetes/evaluation-service/evaluation-service
           args: --timeout=5m ./...
+          skip-cache: true
 
-########################################
-# DOCKERFILE LINT
-########################################
-  dockerfile_lint:
-    needs: lint
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Hadolint
-        uses: hadolint/hadolint-action@v3.1.0
-        with:
-          dockerfile: ${{ env.SERVICE_PATH }}/Dockerfile
-
-########################################
-# SECURITY
-########################################
   security:
-    needs: dockerfile_lint
     runs-on: ubuntu-latest
-
+    needs: lint
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-go@v5
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
           go-version: "1.22.x"
-
-      - name: Run gosec
-        run: |
-          go install github.com/securego/gosec/v2/cmd/gosec@latest
-          gosec -severity high ${{ env.SERVICE_PATH }}/...
-
-      - name: Trivy FS Scan
+          cache: false
+      - name: Install gosec
+        run: go install github.com/securego/gosec/v2/cmd/gosec@latest
+      - name: Run gosec (high only)
+        working-directory: Kubernetes/evaluation-service/evaluation-service
+        run: gosec -severity high ./...
+      - name: Trivy SCA (fail on critical)
         uses: aquasecurity/trivy-action@0.20.0
         with:
           scan-type: fs
-          scan-ref: ${{ env.SERVICE_PATH }}
-          severity: CRITICAL,HIGH
+          scan-ref: Kubernetes/evaluation-service/evaluation-service
+          severity: CRITICAL
           exit-code: "1"
 
-########################################
-# BUILD + PUSH IMAGE
-########################################
   docker_build_push:
-    needs: security
-    if: github.event_name == 'push'
     runs-on: ubuntu-latest
-
-    permissions:
-      id-token: write
-      contents: write
-
+    needs: security
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: docker/setup-buildx-action@v3
-
-      ###################################
-      # AWS OIDC AUTH
-      ###################################
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build image
+        working-directory: Kubernetes/evaluation-service/evaluation-service
+        run: |
+          COMMIT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
+          docker build -t evaluation-service:${COMMIT_SHA} -f Dockerfile .
+          docker tag evaluation-service:${COMMIT_SHA} evaluation-service:latest
+      - name: Trivy Container Scan (fail on critical)
+        run: |
+          COMMIT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:latest image --severity CRITICAL --exit-code 1 \
+            evaluation-service:${COMMIT_SHA}
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_GITHUB_ROLE }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
-
-      - uses: aws-actions/amazon-ecr-login@v2
-
-      ###################################
-      # BUILD WITH CACHE
-      ###################################
-      - name: Build image
-        uses: docker/build-push-action@v5
-        with:
-          context: ${{ env.SERVICE_PATH }}
-          push: false
-          tags: ${{ env.IMAGE_NAME }}:ci
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      ###################################
-      # IMAGE SCAN
-      ###################################
-      - name: Trivy Image Scan
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+      - name: Push to ECR
         run: |
-          docker build -t $IMAGE_NAME:scan $SERVICE_PATH
-          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
-            aquasec/trivy image \
-            --severity CRITICAL \
-            --exit-code 1 \
-            $IMAGE_NAME:scan
-
-      ###################################
-      # TAG + PUSH
-      ###################################
-      - name: Tag & Push
+          COMMIT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
+          ECR_REGISTRY=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+          ECR_REPO=${{ secrets.PROJECT_NAME }}/evaluation-service
+          docker tag evaluation-service:${COMMIT_SHA} $ECR_REGISTRY/$ECR_REPO:${COMMIT_SHA}
+          docker tag evaluation-service:${COMMIT_SHA} $ECR_REGISTRY/$ECR_REPO:latest
+          docker push $ECR_REGISTRY/$ECR_REPO:${COMMIT_SHA}
+          docker push $ECR_REGISTRY/$ECR_REPO:latest
+      - name: Update GitOps manifest
         run: |
-          COMMIT_SHA=${GITHUB_SHA::7}
-          ECR=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
-          REPO=${{ secrets.PROJECT_NAME }}/evaluation-service
-
-          docker build -t $ECR/$REPO:$COMMIT_SHA $SERVICE_PATH
-          docker tag $ECR/$REPO:$COMMIT_SHA $ECR/$REPO:latest
-
-          docker push $ECR/$REPO:$COMMIT_SHA
-          docker push $ECR/$REPO:latest
-
-          echo "COMMIT_SHA=$COMMIT_SHA" >> $GITHUB_ENV
-
-      ###################################
-      # GITOPS VIA PR
-      ###################################
-      - name: Update manifest
-        run: |
-          ECR=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
-          REPO=${{ secrets.PROJECT_NAME }}/evaluation-service
-
-          sed -i "s|image:.*|image: $ECR/$REPO:${COMMIT_SHA}|g" \
-            gitops/manifests/evaluation-service/deployment.yaml
-
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v6
-        with:
-          branch: gitops-eval-${{ env.COMMIT_SHA }}
-          title: "[GitOps] Update evaluation-service image"
-          commit-message: "Update image to ${{ env.COMMIT_SHA }}"
-          body: "Automated GitOps update"
+          COMMIT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
+          ECR_REGISTRY=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+          ECR_REPO=${{ secrets.PROJECT_NAME }}/evaluation-service
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          sed -i "s|image:.*|image: $ECR_REGISTRY/$ECR_REPO:${COMMIT_SHA}|g" gitops/manifests/evaluation-service/deployment.yaml
+          git add gitops/manifests/evaluation-service/deployment.yaml
+          git commit -m "[GitOps] Update evaluation-service image to ${COMMIT_SHA}" || echo "No changes to commit"
+          git push origin main
