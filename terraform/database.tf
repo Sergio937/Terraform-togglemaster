@@ -1,5 +1,5 @@
 resource "aws_security_group" "rds" {
-  name        = "${var.project_name}-${var.environment}-rds"
+  name        = "${var.project_name}-rds"
   description = "Acesso ao RDS PostgreSQL"
   vpc_id      = module.vpc.vpc_id
 
@@ -21,14 +21,14 @@ resource "aws_security_group" "rds" {
 }
 
 resource "aws_db_subnet_group" "postgres" {
-  name       = "${var.project_name}-${var.environment}-rds-subnets"
+  name       = "${var.project_name}-rds-subnets"
   subnet_ids = module.vpc.private_subnets
 
   tags = local.common_tags
 }
 
 resource "aws_db_instance" "postgres_auth" {
-  identifier             = "${var.project_name}-${var.environment}-auth-postgres"
+  identifier             = "${var.project_name}-auth-postgres"
   engine                 = "postgres"
   engine_version         = var.rds_engine_version
   instance_class         = var.rds_instance_class
@@ -46,7 +46,7 @@ resource "aws_db_instance" "postgres_auth" {
 }
 
 resource "aws_db_instance" "postgres_flag" {
-  identifier             = "${var.project_name}-${var.environment}-flag-postgres"
+  identifier             = "${var.project_name}-flag-postgres"
   engine                 = "postgres"
   engine_version         = var.rds_engine_version
   instance_class         = var.rds_instance_class
@@ -64,7 +64,7 @@ resource "aws_db_instance" "postgres_flag" {
 }
 
 resource "aws_db_instance" "postgres_targeting" {
-  identifier             = "${var.project_name}-${var.environment}-targeting-postgres"
+  identifier             = "${var.project_name}-targeting-postgres"
   engine                 = "postgres"
   engine_version         = var.rds_engine_version
   instance_class         = var.rds_instance_class
@@ -104,14 +104,14 @@ resource "aws_security_group" "redis" {
 }
 
 resource "aws_elasticache_subnet_group" "redis" {
-  name       = "${var.project_name}-${var.environment}-redis-subnets"
+  name       = "${var.project_name}-redis-subnets"
   subnet_ids = module.vpc.private_subnets
 
   tags = local.common_tags
 }
 
 resource "aws_elasticache_replication_group" "redis" {
-  replication_group_id       = "${var.project_name}-${var.environment}-redis"
+  replication_group_id       = "${var.project_name}-redis"
   description                = "Redis do ToggleMaster"
   engine                     = "redis"
   engine_version             = var.redis_engine_version

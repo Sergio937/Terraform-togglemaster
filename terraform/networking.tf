@@ -13,7 +13,7 @@ module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "5.5.1"
 
-  name = "${var.project_name}-${var.environment}-vpc"
+  name = "${var.project_name}-vpc"
   cidr = var.vpc_cidr
 
   azs             = local.azs

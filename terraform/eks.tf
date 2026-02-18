@@ -4,7 +4,7 @@ data "aws_iam_role" "lab_role" {
 }
 
 resource "aws_eks_cluster" "main" {
-  name            = "${var.project_name}-${var.environment}"
+  name            = "${var.project_name}"
   version         = var.eks_version
   role_arn        = data.aws_iam_role.lab_role.arn
   vpc_config {
@@ -16,7 +16,7 @@ resource "aws_eks_cluster" "main" {
 # Node group usando LabRole
 resource "aws_eks_node_group" "main" {
   cluster_name    = aws_eks_cluster.main.name
-  node_group_name = "${var.project_name}-${var.environment}-ng"
+  node_group_name = "${var.project_name}-ng"
   node_role_arn   = data.aws_iam_role.lab_role.arn
   subnet_ids      = module.vpc.private_subnets
 

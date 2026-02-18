@@ -10,12 +10,6 @@ variable "project_name" {
   default     = "togglemaster"
 }
 
-variable "environment" {
-  description = "Ambiente"
-  type        = string
-  default     = "dev"
-}
-
 variable "vpc_cidr" {
   description = "CIDR da VPC"
   type        = string
