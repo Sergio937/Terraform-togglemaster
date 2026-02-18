@@ -1,4 +1,27 @@
-# S3 Bucket for Terraform State
+terraform {
+  required_version = ">= 1.10.0"
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+  }
+}
+
+provider "aws" {
+  region = var.aws_region
+}
+
+data "aws_caller_identity" "current" {}
+
+locals {
+  common_tags = {
+    Project   = var.project_name
+    ManagedBy = "Terraform"
+  }
+}
+
 resource "aws_s3_bucket" "terraform_state" {
   bucket = "${var.project_name}-terraform-state-${data.aws_caller_identity.current.account_id}"
 
@@ -10,7 +33,6 @@ resource "aws_s3_bucket" "terraform_state" {
   )
 }
 
-# Enable versioning on S3 bucket
 resource "aws_s3_bucket_versioning" "terraform_state" {
   bucket = aws_s3_bucket.terraform_state.id
 
@@ -19,7 +41,6 @@ resource "aws_s3_bucket_versioning" "terraform_state" {
   }
 }
 
-# Enable server-side encryption on S3 bucket
 resource "aws_s3_bucket_server_side_encryption_configuration" "terraform_state" {
   bucket = aws_s3_bucket.terraform_state.id
 
@@ -30,7 +51,6 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "terraform_state" 
   }
 }
 
-# Block public access to S3 bucket
 resource "aws_s3_bucket_public_access_block" "terraform_state" {
   bucket = aws_s3_bucket.terraform_state.id
 
@@ -40,11 +60,10 @@ resource "aws_s3_bucket_public_access_block" "terraform_state" {
   restrict_public_buckets = true
 }
 
-# DynamoDB Table for Terraform State Locking
 resource "aws_dynamodb_table" "terraform_locks" {
-  name           = "${var.project_name}-terraform-locks"
-  billing_mode   = "PAY_PER_REQUEST"
-  hash_key       = "LockID"
+  name         = "${var.project_name}-terraform-locks"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "LockID"
 
   attribute {
     name = "LockID"
@@ -59,13 +78,17 @@ resource "aws_dynamodb_table" "terraform_locks" {
   )
 }
 
-# Output the S3 bucket and DynamoDB table names
 output "terraform_state_bucket" {
-  description = "Name of the S3 bucket for Terraform state"
+  description = "Nome do bucket S3 para state"
   value       = aws_s3_bucket.terraform_state.id
 }
 
 output "terraform_locks_table" {
-  description = "Name of the DynamoDB table for Terraform locks"
+  description = "Nome da tabela DynamoDB para lock"
   value       = aws_dynamodb_table.terraform_locks.name
+}
+
+output "backend_key" {
+  description = "Chave do state no backend"
+  value       = "${var.project_name}/terraform.tfstate"
 }

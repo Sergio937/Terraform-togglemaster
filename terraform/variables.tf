@@ -11,9 +11,9 @@ variable "project_name" {
 }
 
 variable "environment" {
-  description = "Ambiente de deploy (dev, staging, prod)"
+  description = "Identificador opcional de ambiente"
   type        = string
-  default     = "dev"
+  default     = ""
 }
 
 variable "vpc_cidr" {
@@ -67,7 +67,7 @@ variable "enable_irsa" {
 variable "rds_engine_version" {
   description = "Versao do PostgreSQL no RDS"
   type        = string
-  default     = "14.12"
+  default     = "17.4"
 }
 
 variable "rds_instance_class" {

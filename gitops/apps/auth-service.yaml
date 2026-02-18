@@ -10,7 +10,7 @@ spec:
   project: default
   
   source:
-    repoURL: https://github.com/<seu-usuario>/<seu-repo>.git
+    repoURL: https://github.com/Sergio937/Terraform-togglemaster.git
     targetRevision: main
     path: gitops/manifests/auth-service
   

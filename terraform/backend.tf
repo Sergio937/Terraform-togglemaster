@@ -8,7 +8,6 @@ terraform {
     }
   }
 
-  # Remote Backend Configuration - S3 and DynamoDB
   backend "s3" {
     bucket         = "togglemaster-terraform-state-913430344673"
     key            = "togglemaster/terraform.tfstate"

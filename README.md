@@ -2,46 +2,34 @@
 
 Sistema completo de gerenciamento de feature flags com arquitetura de microsserviços, infraestrutura como código (Terraform), Kubernetes (EKS), GitOps com ArgoCD e pipelines DevSecOps.
 
----
 
-## 📋 Índice
-
-- [Quick Start](#-quick-start-5-minutos)
-- [Visão Geral](#-visão-geral)
-- [Arquitetura](#️-arquitetura)
-- [Microsserviços](#-microsserviços)
-- [GitOps com ArgoCD](#-gitops-com-argocd)
-- [Infraestrutura Terraform](#️-infraestrutura-terraform)
-- [CI/CD Pipeline](#-cicd-pipeline)
-- [Comandos Úteis](#-comandos-úteis)
-- [Troubleshooting](#-troubleshooting)
-
----
-
-## ⚡ Quick Start (5 minutos)
-
-### 1️⃣ Deploy da Infraestrutura
-
-```bash
-cd terraform
-terraform init
-terraform plan -out=tfplan
-terraform apply tfplan
-```
-
-### 2️⃣ Build e Push das Imagens
+### 1️⃣ Configurar AWS CLI 
 
 ```bash
 # Configurar AWS CLI
-export AWS_ACCESS_KEY_ID=<your-key>
-export AWS_SECRET_ACCESS_KEY=<your-secret>
-export AWS_DEFAULT_REGION=us-east-1
-
-# Build e push para ECR
-./scripts/build-all-services.sh
+AWS_ACCESS_KEY_ID=<your-key>
+AWS_SECRET_ACCESS_KEY=<your-secret>
+AWS_DEFAULT_REGION=us-east-1
 ```
 
-### 3️⃣ Instalar ArgoCD
+### 2️⃣ Bootstrap do Backend Terraform (S3 + DynamoDB)
+
+```bash
+cd terraform/bootstrap
+terraform init
+terraform apply -var-file=bootstrap.tfvars
+```
+
+### 3️⃣ Deploy da Infraestrutura Terraform (backend remoto)
+
+```bash
+cd ../
+terraform init -reconfigure
+terraform plan
+terraform apply
+```
+
+### 4️⃣ Instalar ArgoCD
 
 ```bash
 # Configurar kubectl
@@ -56,18 +44,13 @@ kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/st
 kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "LoadBalancer"}}'
 ```
 
-### 4️⃣ Obter Credenciais do ArgoCD
+### 5️⃣ Obter Credenciais do ArgoCD
 
-```bash
-# Usando script auxiliar
-./scripts/gitops-manager.sh credentials
-
-# Ou manualmente
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
 kubectl get svc argocd-server -n argocd
 ```
 
-### 5️⃣ Deploy dos Serviços
+### 6️⃣ Deploy dos Serviços
 
 ```bash
 # Deploy todos os serviços
@@ -77,14 +60,9 @@ kubectl get svc argocd-server -n argocd
 ./scripts/gitops-manager.sh status
 kubectl get pods -n togglemaster
 ```
-
-** Pronto! Acesse o ArgoCD UI para monitorar seus serviços.**
-
----
-
 ##  Visão Geral
 
-ToggleMaster é uma plataforma empresarial de feature flags que permite:
+ToggleMaster é uma plataforma de feature flags que permite:
 - ✅ Gerenciamento centralizado de feature flags
 - ✅ Avaliação de flags em tempo real com cache Redis
 - ✅ Targeting avançado de usuários e segmentação
@@ -137,7 +115,7 @@ ToggleMaster é uma plataforma empresarial de feature flags que permite:
          └────────────────────────────────────┘
 ```
 
-### **Stack Tecnológico:**
+### **Stack**
 
 - **Container Orchestration:** Kubernetes (Amazon EKS)
 - **Infrastructure as Code:** Terraform
@@ -455,36 +433,6 @@ Após push de código, o pipeline:
 
 ---
 
-##  Comandos Úteis
-
-### **Script GitOps Manager:**
-
-```bash
-# Configurar kubeconfig
-./scripts/gitops-manager.sh configure
-
-# Ver credenciais do ArgoCD
-./scripts/gitops-manager.sh credentials
-
-# Ver status do cluster e serviços
-./scripts/gitops-manager.sh status
-
-# Deploy todos os serviços
-./scripts/gitops-manager.sh deploy
-
-# Ver logs de um serviço
-./scripts/gitops-manager.sh logs auth-service
-
-# Reiniciar um serviço
-./scripts/gitops-manager.sh restart auth-service
-
-# Recriar ECR secret
-./scripts/gitops-manager.sh ecr-secret
-
-# Port-forward ArgoCD para localhost
-./scripts/gitops-manager.sh port-forward
-```
-
 ### **Kubectl Direto:**
 
 ```bash
@@ -523,50 +471,6 @@ kubectl scale deployment/auth-service --replicas=3 -n togglemaster
 kubectl get hpa -n togglemaster
 ```
 
-### **Build e Deploy:**
-
-```bash
-# Build todas as imagens e push para ECR
-./scripts/build-all-services.sh
-
-# Build um serviço específico
-cd Kubernetes/auth-service/auth-service
-docker build -t auth-service:latest .
-
-# Login no ECR
-aws ecr get-login-password --region us-east-1 | \
-  docker login --username AWS --password-stdin \
-  913430344673.dkr.ecr.us-east-1.amazonaws.com
-
-# Tag e push
-docker tag auth-service:latest \
-  913430344673.dkr.ecr.us-east-1.amazonaws.com/togglemaster/auth-service:latest
-docker push 913430344673.dkr.ecr.us-east-1.amazonaws.com/togglemaster/auth-service:latest
-```
-
-### **Terraform:**
-
-```bash
-# Ver outputs
-cd terraform
-terraform output
-
-# Ver outputs em JSON
-terraform output -json
-
-# Ver estado
-terraform state list
-
-# Refresh state
-terraform refresh
-
-# Plan com target específico
-terraform plan -target=aws_eks_cluster.main
-
-# Apply com auto-approve
-terraform apply -auto-approve
-```
-
 ### **Monitoramento:**
 
 ```bash
@@ -590,37 +494,6 @@ kubectl rollout history deployment/auth-service -n togglemaster
 kubectl rollout undo deployment/auth-service -n togglemaster
 ```
 
----
-
-## 🔍 Troubleshooting
-
-### **Pods em CrashLoopBackOff:**
-
-**Causa Comum**: Problemas de conectividade com RDS/Redis/SQS
-
-```bash
-# Ver logs do pod
-kubectl logs -n togglemaster <pod-name>
-
-# Verificar eventos
-kubectl describe pod <pod-name> -n togglemaster
-
-# Exemplo de erro: "no pg_hba.conf entry"
-# Solução: Ajustar security group do RDS para permitir tráfego do EKS
-```
-
-**Solução para RDS:**
-1. Obter security group dos nodes do EKS:
-   ```bash
-   aws eks describe-cluster --name togglemaster --query "cluster.resourcesVpcConfig.clusterSecurityGroupId"
-   ```
-2. Adicionar ingress rule no security group do RDS permitindo tráfego da porta 5432 do security group do EKS
-
-### **ImagePullBackOff:**
-
-**Causa**: Problema ao puxar imagem do ECR
-
-```bash
 # Verificar secret
 kubectl get secret ecr-secret -n togglemaster -o yaml
 
@@ -632,26 +505,6 @@ kubectl create secret docker-registry ecr-secret \
   --docker-password=$(aws ecr get-login-password --region us-east-1) \
   --namespace=togglemaster
 
-# Ou usar o script
-./scripts/gitops-manager.sh ecr-secret
-```
-
-### **Serviço não responde:**
-
-```bash
-# Verificar se o pod está rodando
-kubectl get pods -n togglemaster -l app=<service-name>
-
-# Verificar service
-kubectl get svc -n togglemaster <service-name>
-
-# Testar conectividade interna
-kubectl run -it --rm debug --image=busybox --restart=Never -n togglemaster -- sh
-wget -O- http://auth-service:8001/health
-
-# Reiniciar deployment
-./scripts/gitops-manager.sh restart <service-name>
-```
 
 ### **ArgoCD não sincroniza:**
 

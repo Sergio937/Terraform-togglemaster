@@ -13,6 +13,11 @@ on:
       - "Kubernetes/analytics-service/**"
       - ".github/workflows/analytics-service.yml"
 
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
 env:
   SERVICE_PATH: Kubernetes/analytics-service/analytics-service
 

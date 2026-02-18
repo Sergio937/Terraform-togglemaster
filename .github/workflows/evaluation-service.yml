@@ -13,6 +13,11 @@ on:
       - "Kubernetes/evaluation-service/**"
       - ".github/workflows/evaluation-service.yml"
 
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
 env:
   SERVICE_PATH: Kubernetes/evaluation-service/evaluation-service
 

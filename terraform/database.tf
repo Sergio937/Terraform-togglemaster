@@ -82,7 +82,7 @@ resource "aws_db_instance" "postgres_targeting" {
 }
 
 resource "aws_security_group" "redis" {
-  name        = "${var.project_name}-${var.environment}-redis"
+  name        = "${var.project_name}-redis"
   description = "Acesso ao ElastiCache Redis"
   vpc_id      = module.vpc.vpc_id
 

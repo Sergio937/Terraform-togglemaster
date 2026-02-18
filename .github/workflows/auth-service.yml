@@ -13,6 +13,11 @@ on:
       - "Kubernetes/auth-service/**"
       - ".github/workflows/auth-service.yml"
 
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
 jobs:
 
 # -------------- BUILD & TEST --------------------

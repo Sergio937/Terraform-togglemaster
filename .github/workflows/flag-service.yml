@@ -13,6 +13,11 @@ on:
       - "Kubernetes/flag-service/**"
       - ".github/workflows/flag-service.yml"
 
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
 env:
   SERVICE_PATH: Kubernetes/flag-service/flag-service
 

@@ -13,6 +13,11 @@ on:
       - "Kubernetes/targeting-service/**"
       - ".github/workflows/targeting-service.yml"
 
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
 env:
   SERVICE_PATH: Kubernetes/targeting-service/targeting-service
 
