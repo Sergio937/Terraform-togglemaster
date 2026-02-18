@@ -1,4 +1,4 @@
-# 🚀 ToggleMaster - Feature Flag Management Platform
+# ToggleMaster - Fase 03 FIAP
 
 Sistema completo de gerenciamento de feature flags com arquitetura de microsserviços, infraestrutura como código (Terraform), Kubernetes (EKS), GitOps com ArgoCD e pipelines DevSecOps.
 
@@ -78,11 +78,11 @@ kubectl get svc argocd-server -n argocd
 kubectl get pods -n togglemaster
 ```
 
-**🎉 Pronto! Acesse o ArgoCD UI para monitorar seus serviços.**
+** Pronto! Acesse o ArgoCD UI para monitorar seus serviços.**
 
 ---
 
-## 🎯 Visão Geral
+##  Visão Geral
 
 ToggleMaster é uma plataforma empresarial de feature flags que permite:
 - ✅ Gerenciamento centralizado de feature flags
@@ -96,7 +96,7 @@ ToggleMaster é uma plataforma empresarial de feature flags que permite:
 
 ---
 
-## 🏗️ Arquitetura
+##  Arquitetura
 
 ### **Microsserviços (5 serviços):**
 
@@ -153,7 +153,7 @@ ToggleMaster é uma plataforma empresarial de feature flags que permite:
 
 ---
 
-## 🔧 Microsserviços
+##  Microsserviços
 
 ### **1. Auth Service** (Go)
 - **Porta:** 8001
@@ -204,7 +204,7 @@ ToggleMaster é uma plataforma empresarial de feature flags que permite:
 
 ---
 
-## ☁️ Infraestrutura
+##  Infraestrutura
 
 ### **Recursos AWS Provisionados:**
 
@@ -252,7 +252,7 @@ terraform/
 
 ---
 
-## 🔄 CI/CD & DevSecOps
+##  CI/CD & DevSecOps
 
 ### **Pipeline Stages:**
 
@@ -309,7 +309,7 @@ Cada microsserviço possui um pipeline completo com 4 jobs:
 
 ---
 
-## 🔄 GitOps com ArgoCD
+##  GitOps com ArgoCD
 
 ### **Arquitetura GitOps:**
 
@@ -418,7 +418,7 @@ kubectl apply -f gitops/apps/
 
 ---
 
-## 🔄 CI/CD Pipeline
+##  CI/CD Pipeline
 
 ### **Pipeline Stages:**
 
@@ -442,7 +442,7 @@ Após push de código, o pipeline:
    ```yaml
    image: 913430344673.dkr.ecr.us-east-1.amazonaws.com/togglemaster/auth-service:abc1234
    ```
-4. Faz commit: `🚀 Update auth-service image to abc1234`
+4. Faz commit: ` Update auth-service image to abc1234`
 5. ArgoCD detecta e faz deploy automático
 
 ### **Security Layers:**
@@ -455,7 +455,7 @@ Após push de código, o pipeline:
 
 ---
 
-## 🛠️ Comandos Úteis
+##  Comandos Úteis
 
 ### **Script GitOps Manager:**
 
