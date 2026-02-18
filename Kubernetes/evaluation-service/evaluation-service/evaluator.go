@@ -1,17 +1,19 @@
 package main
 
 import (
-	// "context"
 	"crypto/sha1"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
+	"os"
 	"sync"
 	"time"
-	"os"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/sqs"
 )
 
 const (
@@ -121,7 +123,7 @@ func (a *App) fetchFlag(flagName string) (*Flag, error) {
 		return nil, fmt.Errorf("flag-service retornou status %d", resp.StatusCode)
 	}
 
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body)
 	var flag Flag
 	if err := json.Unmarshal(body, &flag); err != nil {
 		return nil, fmt.Errorf("erro ao desserializar resposta do flag-service: %w", err)
@@ -148,7 +150,7 @@ func (a *App) fetchRule(flagName string) (*TargetingRule, error) {
 		return nil, fmt.Errorf("targeting-service retornou status %d", resp.StatusCode)
 	}
 
-	body, _ := ioutil.ReadAll(resp.Body)
+	body, _ := io.ReadAll(resp.Body)
 	var rule TargetingRule
 	if err := json.Unmarshal(body, &rule); err != nil {
 		return nil, fmt.Errorf("erro ao desserializar resposta do targeting-service: %w", err)

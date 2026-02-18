@@ -97,7 +97,7 @@ def sqs_worker_loop():
                 MaxNumberOfMessages=10,  # Processa em lotes de até 10
                 WaitTimeSeconds=20
             )
-            
+
             messages = response.get('Messages', [])
             if not messages:
                 # Nenhuma mensagem, continua o loop
