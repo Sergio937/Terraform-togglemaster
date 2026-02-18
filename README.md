@@ -2,6 +2,20 @@
 
 Sistema completo de gerenciamento de feature flags com arquitetura de microsserviços, infraestrutura como código (Terraform), Kubernetes (EKS), GitOps com ArgoCD e pipelines DevSecOps.
 
+##  Visão Geral
+
+ToggleMaster é uma plataforma de feature flags que permite:
+- ✅ Gerenciamento centralizado de feature flags
+- ✅ Avaliação de flags em tempo real com cache Redis
+- ✅ Targeting avançado de usuários e segmentação
+- ✅ Analytics e monitoramento em tempo real
+- ✅ Autenticação e autorização JWT
+- ✅ Deploy automático com GitOps (ArgoCD)
+- ✅ CI/CD completo com GitHub Actions
+- ✅ Segurança integrada (Trivy, gosec, bandit)
+
+## 🚀 Quick Start
+
 
 ### 1️⃣ Configurar AWS CLI 
 
@@ -37,41 +51,47 @@ aws eks update-kubeconfig --name togglemaster --region us-east-1
 
 # Instalar ArgoCD
 ./gitops/argocd/install.sh
-
-# Ou manualmente:
-kubectl create namespace argocd
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "LoadBalancer"}}'
 ```
 
 ### 5️⃣ Obter Credenciais do ArgoCD
 
+```bash
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
 kubectl get svc argocd-server -n argocd
 ```
 
-### 6️⃣ Deploy dos Serviços
+### 6️⃣ Build & Push das Imagens (GitHub Actions)
+
+> Execute os workflows dos 5 serviços e aguarde o push para ECR antes de aplicar `gitops/apps`.
 
 ```bash
-# Deploy todos os serviços
-./scripts/gitops-manager.sh deploy
-
-# Verificar status
-./scripts/gitops-manager.sh status
-kubectl get pods -n togglemaster
+# Verificar se as imagens já existem no ECR
+aws ecr list-images --region us-east-1 --repository-name togglemaster/auth-service --query 'imageIds[*].imageTag'
+aws ecr list-images --region us-east-1 --repository-name togglemaster/flag-service --query 'imageIds[*].imageTag'
+aws ecr list-images --region us-east-1 --repository-name togglemaster/evaluation-service --query 'imageIds[*].imageTag'
+aws ecr list-images --region us-east-1 --repository-name togglemaster/analytics-service --query 'imageIds[*].imageTag'
+aws ecr list-images --region us-east-1 --repository-name togglemaster/targeting-service --query 'imageIds[*].imageTag'
 ```
-##  Visão Geral
 
-ToggleMaster é uma plataforma de feature flags que permite:
-- ✅ Gerenciamento centralizado de feature flags
-- ✅ Avaliação de flags em tempo real com cache Redis
-- ✅ Targeting avançado de usuários e segmentação
-- ✅ Analytics e monitoramento em tempo real
-- ✅ Autenticação e autorização JWT
-- ✅ Deploy automático com GitOps (ArgoCD)
-- ✅ CI/CD completo com GitHub Actions
-- ✅ Segurança integrada (Trivy, gosec, bandit)
+### 7️⃣ Deploy dos Serviços (GitOps)
 
+```bash
+# Aplicar as Applications do ArgoCD
+kubectl apply -f gitops/apps/
+
+# Verificar status das Applications
+kubectl get applications -n argocd
+
+# (Opcional) detalhes de uma aplicação específica
+kubectl describe application auth-service -n argocd
+
+# Verificar recursos no namespace da aplicação
+kubectl get all -n togglemaster
+kubectl get pods -n togglemaster
+
+# Acompanhar eventos (útil para ImagePullBackOff/ErrImagePull)
+kubectl get events -n togglemaster --sort-by='.lastTimestamp'
+```
 ---
 
 ##  Arquitetura
@@ -226,6 +246,11 @@ terraform/
 ├── registry.tf      # ECR repositories
 ├── variables.tf     # Input variables
 └── outputs.tf       # Output values
+bootstrap/
+├── bootstrap.tfvars          
+├── main.tf      # Main configuration
+└── variables.tf # Input variables
+
 ```
 
 ---
@@ -377,7 +402,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/<seu-usuario>/<seu-repo>.git
+    repoURL: https://github.com/Sergio937/Terraform-togglemaster.git
     targetRevision: main
     path: gitops/manifests/auth-service
   destination:
