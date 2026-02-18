@@ -5,8 +5,8 @@ metadata:
   namespace: togglemaster
 data:
   PORT: "8003"
-  DATABASE_URL: "postgres://<db-user>:<db-pass>@${AWS_RDS_ENDPOINT}:5432/targeting_db"
-  POSTGRES_USER: "<db-user>"
+  DATABASE_URL: "postgres://postgres:tm_pass_26@togglemaster-targeting-postgres.c674hxhtj76m.us-east-1.rds.amazonaws.com:5432/targeting_db"
+  POSTGRES_USER: "postgres"
   POSTGRES_DB: "targeting_db"
-  POSTGRES_HOST: "${AWS_RDS_ENDPOINT}"
+  POSTGRES_HOST: "togglemaster-targeting-postgres.c674hxhtj76m.us-east-1.rds.amazonaws.com"
   AUTH_SERVICE_URL: "http://auth-service:8001"

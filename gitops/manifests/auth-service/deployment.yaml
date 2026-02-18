@@ -15,9 +15,11 @@ spec:
       labels:
         app: auth-service
     spec:
+      imagePullSecrets:
+        - name: ecr-secret
       containers:
         - name: auth-service
-          image: ${ECR_AUTH_IMAGE}
+          image: 913430344673.dkr.ecr.us-east-1.amazonaws.com/togglemaster/auth-service:latest
           imagePullPolicy: Always
           resources:
             requests:

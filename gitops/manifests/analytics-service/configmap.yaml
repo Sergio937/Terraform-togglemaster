@@ -5,6 +5,6 @@ metadata:
   namespace: togglemaster
 data:
   PORT: "8005"
-  AWS_SQS_URL: "${AWS_SQS_QUEUE_URL}"
-  AWS_DYNAMODB_TABLE: "${AWS_DYNAMODB_TABLE_NAME}"
-  AWS_REGION: "${AWS_REGION}"
+  AWS_SQS_URL: "https://sqs.us-east-1.amazonaws.com/913430344673/togglemaster-queue"
+  AWS_DYNAMODB_TABLE: "ToggleMasterAnalytics"
+  AWS_REGION: "us-east-1"

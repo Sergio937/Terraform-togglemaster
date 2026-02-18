@@ -15,9 +15,11 @@ spec:
       labels:
         app: targeting-service
     spec:
+      imagePullSecrets:
+        - name: ecr-secret
       containers:
         - name: targeting-service
-          image: ${ECR_TARGETING_IMAGE}
+          image: 913430344673.dkr.ecr.us-east-1.amazonaws.com/togglemaster/targeting-service:latest
           imagePullPolicy: Always
           resources:
             requests:
