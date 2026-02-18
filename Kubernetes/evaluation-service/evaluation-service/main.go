@@ -1,3 +1,4 @@
+// Package main implements the feature flag evaluation service.
 package main
 
 import (
@@ -17,18 +18,21 @@ import (
 // Contexto global para o Redis
 var ctx = context.Background()
 
-// App struct para injeção de dependência
+// App represents the application state with dependencies
 type App struct {
 	RedisClient         *redis.Client
 	SqsSvc              *sqs.SQS
 	SqsQueueURL         string
-	HttpClient          *http.Client
+	HTTPClient          *http.Client
 	FlagServiceURL      string
 	TargetingServiceURL string
 }
 
 func main() {
-	_ = godotenv.Load() // Carrega .env para dev local
+	err := godotenv.Load() // Carrega .env para dev local
+	if err != nil {
+		log.Printf("Warning: .env file not found: %v", err)
+	}
 
 	// --- Configuração ---
 	port := os.Getenv("PORT")
@@ -61,7 +65,7 @@ func main() {
 		log.Fatal("AWS_REGION deve ser definida para usar SQS")
 	}
 
-	// --- Inicializa Clientes ---
+	// --- Inicializa Clients ---
 	
 	// Cliente Redis
 	opt, err := redis.ParseURL(redisURL)
@@ -95,7 +99,7 @@ func main() {
 		RedisClient:         rdb,
 		SqsSvc:              sqsSvc,
 		SqsQueueURL:         sqsQueueURL,
-		HttpClient:          httpClient,
+		HTTPClient:          httpClient,
 		FlagServiceURL:      flagSvcURL,
 		TargetingServiceURL: targetingSvcURL,
 	}

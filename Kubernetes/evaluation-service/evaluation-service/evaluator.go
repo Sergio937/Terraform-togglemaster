@@ -1,3 +1,4 @@
+// Package main implements the feature flag evaluation service.
 package main
 
 import (
@@ -14,8 +15,8 @@ import (
 )
 
 const (
-	// Tempo de vida do cache em segundos
-	CACHE_TTL = 30 * time.Second
+	// CacheTTL is the time to live for cache entries in seconds
+	CacheTTL = 30 * time.Second
 )
 
 // getDecision é o wrapper principal
@@ -39,12 +40,12 @@ func (a *App) getCombinedFlagInfo(flagName string) (*CombinedFlagInfo, error) {
 	if err == nil {
 		// Cache HIT
 		var info CombinedFlagInfo
-		if err := json.Unmarshal([]byte(val), &info); err == nil {
+		if cacheErr := json.Unmarshal([]byte(val), &info); cacheErr == nil {
 			log.Printf("Cache HIT para flag '%s'", flagName)
 			return &info, nil
 		}
 		// Se o unmarshal falhar, trata como cache miss
-		log.Printf("Erro ao desserializar cache para flag '%s': %v", flagName, err)
+		log.Printf("Erro ao desserializar cache para flag '%s': %v", flagName, cacheErr)
 	}
 	
 	log.Printf("Cache MISS para flag '%s'", flagName)
@@ -57,7 +58,7 @@ func (a *App) getCombinedFlagInfo(flagName string) (*CombinedFlagInfo, error) {
 	// 3. Salvar no Cache
 	jsonData, err := json.Marshal(info)
 	if err == nil {
-		a.RedisClient.Set(ctx, cacheKey, jsonData, CACHE_TTL).Err()
+		_ = a.RedisClient.Set(ctx, cacheKey, jsonData, CacheTTL).Err()
 	}
 
 	return info, nil
@@ -99,19 +100,24 @@ func (a *App) fetchFromServices(flagName string) (*CombinedFlagInfo, error) {
 	}, nil
 }
 
-// fetchFlag (função helper)
+// fetchFlag fetches flag data from the flag-service
 func (a *App) fetchFlag(flagName string) (*Flag, error) {
 	url := fmt.Sprintf("%s/flags/%s", a.FlagServiceURL, flagName)
 
 	apiKey := os.Getenv("SERVICE_API_KEY")
-	req, _ := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao criar requisição para flag-service: %w", err)
+	}
 	req.Header.Set("Authorization", "Bearer "+apiKey)
-	
+
 	resp, err := a.HttpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("erro ao chamar flag-service: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, &NotFoundError{flagName}
@@ -120,7 +126,10 @@ func (a *App) fetchFlag(flagName string) (*Flag, error) {
 		return nil, fmt.Errorf("flag-service retornou status %d", resp.StatusCode)
 	}
 
-	body, _ := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao ler resposta do flag-service: %w", err)
+	}
 	var flag Flag
 	if err := json.Unmarshal(body, &flag); err != nil {
 		return nil, fmt.Errorf("erro ao desserializar resposta do flag-service: %w", err)
@@ -130,15 +139,20 @@ func (a *App) fetchFlag(flagName string) (*Flag, error) {
 
 func (a *App) fetchRule(flagName string) (*TargetingRule, error) {
 	url := fmt.Sprintf("%s/rules/%s", a.TargetingServiceURL, flagName)
-	apiKey := os.Getenv("SERVICE_API_KEY") // Usa a mesma chave
-	req, _ := http.NewRequest("GET", url, nil)
+	apiKey := os.Getenv("SERVICE_API_KEY")
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao criar requisição para targeting-service: %w", err)
+	}
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 	
 	resp, err := a.HttpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("erro ao chamar targeting-service: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, &NotFoundError{flagName} // Não é um erro fatal
@@ -147,7 +161,10 @@ func (a *App) fetchRule(flagName string) (*TargetingRule, error) {
 		return nil, fmt.Errorf("targeting-service retornou status %d", resp.StatusCode)
 	}
 
-	body, _ := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao ler resposta do targeting-service: %w", err)
+	}
 	var rule TargetingRule
 	if err := json.Unmarshal(body, &rule); err != nil {
 		return nil, fmt.Errorf("erro ao desserializar resposta do targeting-service: %w", err)

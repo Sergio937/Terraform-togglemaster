@@ -1,3 +1,4 @@
+// Package main implements the feature flag evaluation service.
 package main
 
 import "fmt"
@@ -14,16 +15,16 @@ type Flag struct {
 
 // TargetingRule espelha a resposta do targeting-service
 type TargetingRule struct {
-	ID         int    `json:"id"`
-	FlagName   string `json:"flag_name"`
-	IsEnabled  bool   `json:"is_enabled"`
-	Rules      Rule   `json:"rules"` // O objeto JSONB
+	Rules     Rule   `json:"rules"` // O objeto JSONB
+	FlagName  string `json:"flag_name"`
+	ID        int    `json:"id"`
+	IsEnabled bool   `json:"is_enabled"`
 }
 
 // Rule é o objeto JSONB aninhado
 type Rule struct {
-	Type  string      `json:"type"`  // ex: "PERCENTAGE"
 	Value interface{} `json:"value"` // ex: 50
+	Type  string      `json:"type"`  // ex: "PERCENTAGE"
 }
 
 // CombinedFlagInfo é a estrutura que salvamos no cache

@@ -1,3 +1,4 @@
+// Package main implements the feature flag evaluation service.
 package main
 
 import (
@@ -9,12 +10,12 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 )
 
-// Evento que será enviado para a fila
+// EvaluationEvent represents an event sent to the SQS queue
 type EvaluationEvent struct {
+	Timestamp time.Time `json:"timestamp"`
 	UserID    string    `json:"user_id"`
 	FlagName  string    `json:"flag_name"`
 	Result    bool      `json:"result"`
-	Timestamp time.Time `json:"timestamp"`
 }
 
 // sendEvaluationEvent envia um evento para a fila SQS

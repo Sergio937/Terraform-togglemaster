@@ -1,3 +1,4 @@
+// Package main implements the feature flag evaluation service.
 package main
 
 import (
@@ -6,16 +7,17 @@ import (
 	"net/http"
 )
 
+// EvaluationResponse represents the response from the evaluation endpoint
 type EvaluationResponse struct {
 	FlagName string `json:"flag_name"`
 	UserID   string `json:"user_id"`
 	Result   bool   `json:"result"`
 }
 
-func (a *App) healthHandler(w http.ResponseWriter, r *http.Request) {
+func (a *App) healthHandler(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 }
 
 func (a *App) evaluationHandler(w http.ResponseWriter, r *http.Request) {
@@ -50,7 +52,7 @@ func (a *App) evaluationHandler(w http.ResponseWriter, r *http.Request) {
 
 	// 4. Retornar a resposta
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(EvaluationResponse{
+	_ = json.NewEncoder(w).Encode(EvaluationResponse{
 		FlagName: flagName,
 		UserID:   userID,
 		Result:   result,
