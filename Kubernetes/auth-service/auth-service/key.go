@@ -1,3 +1,4 @@
+// Package main implements the authentication service.
 package main
 
 import (

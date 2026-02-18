@@ -1,3 +1,4 @@
+// Package main implements the authentication service.
 package main
 
 import (
@@ -10,10 +11,10 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// App struct (para injeção de dependência)
+// App struct for dependency injection
 type App struct {
-	DB         *sql.DB
-	MasterKey  string
+	DB        *sql.DB
+	MasterKey string
 }
 
 func main() {
@@ -36,12 +37,14 @@ func main() {
 		log.Fatal("MASTER_KEY deve ser definida")
 	}
 
-	// --- Conexão com o Banco ---
+	// Connection with the Database
 	db, err := connectDB(databaseURL)
 	if err != nil {
-		log.Fatalf("Não foi possível conectar ao banco de dados: %v", err)
+		log.Fatalf("Failed to connect to database: %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		_ = db.Close()
+	}()
 
 	app := &App{
 		DB:         db,
@@ -55,8 +58,8 @@ func main() {
 	// Endpoint público para validar uma chave
 	mux.HandleFunc("/validate", app.validateKeyHandler)
 
-	// Endpoints de "admin" para criar/gerenciar chaves
-	// Eles são protegidos pelo middleware de autenticação
+	// Endpoints for admin to create and manage keys
+	// They are protected by authentication middleware
 	mux.Handle("/admin/keys", app.masterKeyAuthMiddleware(http.HandlerFunc(app.createKeyHandler)))
 
 	log.Printf("Serviço de Autenticação (Go) rodando na porta %s", port)

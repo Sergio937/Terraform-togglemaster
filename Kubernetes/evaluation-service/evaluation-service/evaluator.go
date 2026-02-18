@@ -40,7 +40,8 @@ func (a *App) getCombinedFlagInfo(flagName string) (*CombinedFlagInfo, error) {
 	if err == nil {
 		// Cache HIT
 		var info CombinedFlagInfo
-		if cacheErr := json.Unmarshal([]byte(val), &info); cacheErr == nil {
+		var cacheErr error
+		if cacheErr = json.Unmarshal([]byte(val), &info); cacheErr == nil {
 			log.Printf("Cache HIT para flag '%s'", flagName)
 			return &info, nil
 		}
@@ -111,7 +112,7 @@ func (a *App) fetchFlag(flagName string) (*Flag, error) {
 	}
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 
-	resp, err := a.HttpClient.Do(req)
+	resp, err := a.HTTPClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("erro ao chamar flag-service: %w", err)
 	}
@@ -146,7 +147,7 @@ func (a *App) fetchRule(flagName string) (*TargetingRule, error) {
 	}
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 	
-	resp, err := a.HttpClient.Do(req)
+	resp, err := a.HTTPClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("erro ao chamar targeting-service: %w", err)
 	}
