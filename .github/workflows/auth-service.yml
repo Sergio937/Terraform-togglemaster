@@ -108,7 +108,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: security
 
-    if: github.ref == 'refs/heads/Cloud-AWS'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/Main'
 
     defaults:
       run:
