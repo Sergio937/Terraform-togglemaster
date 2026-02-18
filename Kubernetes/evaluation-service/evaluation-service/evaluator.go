@@ -138,7 +138,7 @@ func (a *App) fetchFlag(flagName string) (*Flag, error) {
 	}
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 
-	resp, err := a.HTTPClient.Do(req)
+	resp, err := a.HTTPClient.Do(req) //nolint:gosec // URL validated with validateURL()
 	if err != nil {
 		return nil, fmt.Errorf("erro ao chamar flag-service: %w", err)
 	}
@@ -179,7 +179,7 @@ func (a *App) fetchRule(flagName string) (*TargetingRule, error) {
 	}
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 	
-	resp, err := a.HTTPClient.Do(req)
+	resp, err := a.HTTPClient.Do(req) //nolint:gosec // URL validated with validateURL()
 	if err != nil {
 		return nil, fmt.Errorf("erro ao chamar targeting-service: %w", err)
 	}
