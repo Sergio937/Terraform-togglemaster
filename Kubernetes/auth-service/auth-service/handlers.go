@@ -1,4 +1,3 @@
-// Package main implements the authentication service.
 package main
 
 import (
@@ -27,12 +26,10 @@ func writeError(w http.ResponseWriter, status int, msg string) {
 
 // ---------- DTOs ----------
 
-// CreateKeyRequest represents the structure for the body of the key creation request.
 type CreateKeyRequest struct {
 	Name string `json:"name"`
 }
 
-// CreateKeyResponse represents the structure for the response of the key creation.
 type CreateKeyResponse struct {
 	Name    string `json:"name"`
 	Key     string `json:"key"`
@@ -41,14 +38,12 @@ type CreateKeyResponse struct {
 
 // ---------- Handlers ----------
 
-// healthHandler is a simple health check endpoint
 func (a *App) healthHandler(w http.ResponseWriter, _ *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{
 		"status": "ok",
 	})
 }
 
-// validateKeyHandler verifica se uma chave de API é válida
 func (a *App) validateKeyHandler(w http.ResponseWriter, r *http.Request) {
 	authHeader := r.Header.Get("Authorization")
 
@@ -73,8 +68,8 @@ func (a *App) validateKeyHandler(w http.ResponseWriter, r *http.Request) {
 	).Scan(&id)
 
 	if err != nil {
-		log.Printf("Falha na validação da chave (hash: %s...): %v", keyHash[:6], err)
-		writeError(w, http.StatusUnauthorized, "Chave de API inválida ou inativa")
+		log.Printf("Falha validação key (hash: %s...): %v", keyHash[:6], err)
+		writeError(w, http.StatusUnauthorized, "Chave inválida ou inativa")
 		return
 	}
 
@@ -83,30 +78,33 @@ func (a *App) validateKeyHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// createKeyHandler cria uma nova chave de API
 func (a *App) createKeyHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		writeError(w, http.StatusMethodNotAllowed, "Método não permitido")
 		return
 	}
 
-	defer r.Body.Close()
+	defer func() {
+		if err := r.Body.Close(); err != nil {
+			log.Printf("erro ao fechar request body: %v", err)
+		}
+	}()
 
 	var req CreateKeyRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "Corpo da requisição inválido")
+		writeError(w, http.StatusBadRequest, "Corpo inválido")
 		return
 	}
 
 	if strings.TrimSpace(req.Name) == "" {
-		writeError(w, http.StatusBadRequest, "O campo 'name' é obrigatório")
+		writeError(w, http.StatusBadRequest, "name é obrigatório")
 		return
 	}
 
 	newKey, err := generateAPIKey()
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Erro ao gerar a chave")
+		writeError(w, http.StatusInternalServerError, "Erro ao gerar chave")
 		return
 	}
 
@@ -114,42 +112,39 @@ func (a *App) createKeyHandler(w http.ResponseWriter, r *http.Request) {
 
 	var newID int
 	err = a.DB.QueryRow(
-		"INSERT INTO api_keys (name, key_hash) VALUES ($1, $2) RETURNING id",
+		"INSERT INTO api_keys (name, key_hash) VALUES ($1,$2) RETURNING id",
 		req.Name,
 		newKeyHash,
 	).Scan(&newID)
 
 	if err != nil {
-		log.Printf("Erro ao salvar a chave no banco: %v", err)
-		writeError(w, http.StatusInternalServerError, "Erro ao salvar a chave")
+		log.Printf("erro DB: %v", err)
+		writeError(w, http.StatusInternalServerError, "Erro ao salvar chave")
 		return
 	}
-
-	log.Printf("Nova chave criada (ID: %d, Name: %s)", newID, req.Name)
 
 	writeJSON(w, http.StatusCreated, CreateKeyResponse{
 		Name:    req.Name,
 		Key:     newKey,
-		Message: "Keep this key secure! You won't be able to see it again.",
+		Message: "Keep this key secure! You won't see it again.",
 	})
 }
 
 // ---------- Middleware ----------
 
-// masterKeyAuthMiddleware protege endpoints com MASTER_KEY
 func (a *App) masterKeyAuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
 
 		if !strings.HasPrefix(authHeader, "Bearer ") {
-			writeError(w, http.StatusForbidden, "Acesso não autorizado")
+			writeError(w, http.StatusForbidden, "Não autorizado")
 			return
 		}
 
 		keyString := strings.TrimPrefix(authHeader, "Bearer ")
 
 		if keyString != a.MasterKey {
-			writeError(w, http.StatusForbidden, "Acesso não autorizado")
+			writeError(w, http.StatusForbidden, "Não autorizado")
 			return
 		}
 
