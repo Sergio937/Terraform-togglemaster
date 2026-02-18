@@ -1,25 +1,33 @@
-// Package main implements the authentication service.
 package main
 
 import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 )
 
-// generateAPIKey cria uma string aleatória segura de 32 bytes
+const apiKeyPrefix = "tm_key_"
+const apiKeyBytes = 32 // 256 bits de entropia
+
+// generateAPIKey cria uma string aleatória segura
 func generateAPIKey() (string, error) {
-	bytes := make([]byte, 32) // 32 bytes = 256 bits de entropia
-	if _, err := rand.Read(bytes); err != nil {
-		return "", err
+	b := make([]byte, apiKeyBytes)
+
+	n, err := rand.Read(b)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate random bytes: %w", err)
 	}
-	// Prefixo para facilitar a identificação da chave
-	return "tm_key_" + hex.EncodeToString(bytes), nil
+
+	if n != apiKeyBytes {
+		return "", fmt.Errorf("insufficient random bytes read")
+	}
+
+	return apiKeyPrefix + hex.EncodeToString(b), nil
 }
 
-// hashAPIKey calcula o hash SHA-256 de uma chave para armazenamento seguro
+// hashAPIKey calcula o hash SHA-256 de uma chave
 func hashAPIKey(key string) string {
-	hash := sha256.Sum256([]byte(key))
-	// Retorna o hash como uma string hexadecimal de 64 caracteres
-	return hex.EncodeToString(hash[:])
+	sum := sha256.Sum256([]byte(key))
+	return hex.EncodeToString(sum[:])
 }
