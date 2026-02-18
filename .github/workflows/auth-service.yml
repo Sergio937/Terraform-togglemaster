@@ -15,7 +15,7 @@ on:
 
 jobs:
 
-# ---------------- BUILD & TEST --------------------
+# -------------- BUILD & TEST ------------------
 
   build_test:
     runs-on: ubuntu-latest
