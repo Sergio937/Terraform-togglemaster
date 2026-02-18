@@ -11,9 +11,6 @@ import (
 	"os"
 	"sync"
 	"time"
-
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/sqs"
 )
 
 const (
