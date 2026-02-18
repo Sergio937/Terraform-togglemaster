@@ -9,6 +9,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"sync"
 	"time"
@@ -18,6 +19,26 @@ const (
 	// CacheTTL is the time to live for cache entries in seconds
 	CacheTTL = 30 * time.Second
 )
+
+// validateURL validates that a URL is safe (prevents SSRF)
+func validateURL(urlStr string) error {
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		return fmt.Errorf("invalid URL: %w", err)
+	}
+
+	// Only allow http and https schemes
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return fmt.Errorf("invalid URL scheme: only http and https allowed, got %s", u.Scheme)
+	}
+
+	// Ensure hostname is set
+	if u.Hostname() == "" {
+		return fmt.Errorf("invalid URL: missing hostname")
+	}
+
+	return nil
+}
 
 // getDecision é o wrapper principal
 func (a *App) getDecision(userID, flagName string) (bool, error) {
@@ -105,6 +126,11 @@ func (a *App) fetchFromServices(flagName string) (*CombinedFlagInfo, error) {
 func (a *App) fetchFlag(flagName string) (*Flag, error) {
 	url := fmt.Sprintf("%s/flags/%s", a.FlagServiceURL, flagName)
 
+	// Validate URL to prevent SSRF
+	if err := validateURL(url); err != nil {
+		return nil, fmt.Errorf("invalid flag-service URL: %w", err)
+	}
+
 	apiKey := os.Getenv("SERVICE_API_KEY")
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -140,6 +166,12 @@ func (a *App) fetchFlag(flagName string) (*Flag, error) {
 
 func (a *App) fetchRule(flagName string) (*TargetingRule, error) {
 	url := fmt.Sprintf("%s/rules/%s", a.TargetingServiceURL, flagName)
+	
+	// Validate URL to prevent SSRF
+	if err := validateURL(url); err != nil {
+		return nil, fmt.Errorf("invalid targeting-service URL: %w", err)
+	}
+	
 	apiKey := os.Getenv("SERVICE_API_KEY")
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
