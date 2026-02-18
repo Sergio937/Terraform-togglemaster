@@ -156,7 +156,7 @@ ToggleMaster é uma plataforma empresarial de feature flags que permite:
 ## 🔧 Microsserviços
 
 ### **1. Auth Service** (Go)
-- **Porta:** 8081
+- **Porta:** 8001
 - **Função:** Autenticação e geração de tokens JWT
 - **Database:** PostgreSQL (RDS)
 - **Endpoints:**
@@ -165,7 +165,7 @@ ToggleMaster é uma plataforma empresarial de feature flags que permite:
   - `GET /auth/validate` - Validação de token
 
 ### **2. Flag Service** (Python)
-- **Porta:** 8082
+- **Porta:** 8002
 - **Função:** CRUD de feature flags
 - **Database:** PostgreSQL (RDS)
 - **Endpoints:**
@@ -175,7 +175,7 @@ ToggleMaster é uma plataforma empresarial de feature flags que permite:
   - `DELETE /flags/:id` - Deletar flag
 
 ### **3. Evaluation Service** (Go)
-- **Porta:** 8083
+- **Porta:** 8004
 - **Função:** Avaliação de flags para usuários
 - **Cache:** Redis (ElastiCache)
 - **Queue:** Amazon SQS (eventos de avaliação)
@@ -184,7 +184,7 @@ ToggleMaster é uma plataforma empresarial de feature flags que permite:
   - `GET /evaluate/bulk` - Avaliação em lote
 
 ### **4. Targeting Service** (Python)
-- **Porta:** 8084
+- **Porta:** 8003
 - **Função:** Regras de targeting de usuários
 - **Database:** PostgreSQL (RDS)
 - **Endpoints:**
@@ -193,7 +193,7 @@ ToggleMaster é uma plataforma empresarial de feature flags que permite:
   - `POST /targeting/match` - Verificar match de usuário
 
 ### **5. Analytics Service** (Python)
-- **Porta:** 8085
+- **Porta:** 8005
 - **Função:** Coleta e análise de eventos
 - **Database:** DynamoDB
 - **Queue Consumer:** Amazon SQS
