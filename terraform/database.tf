@@ -4,10 +4,10 @@ resource "aws_security_group" "rds" {
   vpc_id      = module.vpc.vpc_id
 
   ingress {
-    from_port       = 5432
-    to_port         = 5432
-    protocol        = "tcp"
-    security_groups = [module.eks.node_security_group_id]
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
+    cidr_blocks = ["10.0.0.0/16"]
   }
 
   egress {
@@ -27,13 +27,13 @@ resource "aws_db_subnet_group" "postgres" {
   tags = local.common_tags
 }
 
-resource "aws_db_instance" "postgres" {
-  identifier             = "${var.project_name}-${var.environment}-postgres"
+resource "aws_db_instance" "postgres_auth" {
+  identifier             = "${var.project_name}-${var.environment}-auth-postgres"
   engine                 = "postgres"
   engine_version         = var.rds_engine_version
   instance_class         = var.rds_instance_class
   allocated_storage      = var.rds_allocated_storage
-  db_name                = var.rds_db_name
+  db_name                = "${var.rds_db_name}_auth"
   username               = var.rds_username
   password               = var.rds_password
   db_subnet_group_name   = aws_db_subnet_group.postgres.name
@@ -42,7 +42,43 @@ resource "aws_db_instance" "postgres" {
   skip_final_snapshot    = true
   deletion_protection    = false
 
-  tags = merge(local.common_tags, { Service = "postgresql" })
+  tags = merge(local.common_tags, { Service = "postgresql-auth" })
+}
+
+resource "aws_db_instance" "postgres_flag" {
+  identifier             = "${var.project_name}-${var.environment}-flag-postgres"
+  engine                 = "postgres"
+  engine_version         = var.rds_engine_version
+  instance_class         = var.rds_instance_class
+  allocated_storage      = var.rds_allocated_storage
+  db_name                = "${var.rds_db_name}_flag"
+  username               = var.rds_username
+  password               = var.rds_password
+  db_subnet_group_name   = aws_db_subnet_group.postgres.name
+  vpc_security_group_ids = [aws_security_group.rds.id]
+  publicly_accessible    = false
+  skip_final_snapshot    = true
+  deletion_protection    = false
+
+  tags = merge(local.common_tags, { Service = "postgresql-flag" })
+}
+
+resource "aws_db_instance" "postgres_targeting" {
+  identifier             = "${var.project_name}-${var.environment}-targeting-postgres"
+  engine                 = "postgres"
+  engine_version         = var.rds_engine_version
+  instance_class         = var.rds_instance_class
+  allocated_storage      = var.rds_allocated_storage
+  db_name                = "${var.rds_db_name}_targeting"
+  username               = var.rds_username
+  password               = var.rds_password
+  db_subnet_group_name   = aws_db_subnet_group.postgres.name
+  vpc_security_group_ids = [aws_security_group.rds.id]
+  publicly_accessible    = false
+  skip_final_snapshot    = true
+  deletion_protection    = false
+
+  tags = merge(local.common_tags, { Service = "postgresql-targeting" })
 }
 
 resource "aws_security_group" "redis" {
@@ -51,10 +87,10 @@ resource "aws_security_group" "redis" {
   vpc_id      = module.vpc.vpc_id
 
   ingress {
-    from_port       = 6379
-    to_port         = 6379
-    protocol        = "tcp"
-    security_groups = [module.eks.node_security_group_id]
+    from_port   = 6379
+    to_port     = 6379
+    protocol    = "tcp"
+    cidr_blocks = ["10.0.0.0/16"]
   }
 
   egress {

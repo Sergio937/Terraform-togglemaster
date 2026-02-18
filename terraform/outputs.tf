@@ -25,17 +25,27 @@ output "private_subnet_ids" {
 
 output "eks_cluster_name" {
   description = "Nome do cluster EKS"
-  value       = module.eks.cluster_name
+  value       = aws_eks_cluster.main.name
 }
 
 output "eks_cluster_endpoint" {
   description = "Endpoint do cluster EKS"
-  value       = module.eks.cluster_endpoint
+  value       = aws_eks_cluster.main.endpoint
 }
 
-output "rds_endpoint" {
-  description = "Endpoint do PostgreSQL no RDS"
-  value       = aws_db_instance.postgres.address
+output "rds_auth_endpoint" {
+  description = "Endpoint do PostgreSQL Auth Service no RDS"
+  value       = aws_db_instance.postgres_auth.address
+}
+
+output "rds_flag_endpoint" {
+  description = "Endpoint do PostgreSQL Flag Service no RDS"
+  value       = aws_db_instance.postgres_flag.address
+}
+
+output "rds_targeting_endpoint" {
+  description = "Endpoint do PostgreSQL Targeting Service no RDS"
+  value       = aws_db_instance.postgres_targeting.address
 }
 
 output "redis_primary_endpoint" {
