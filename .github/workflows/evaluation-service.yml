@@ -86,6 +86,7 @@ jobs:
         with:
           version: v1.61.0
           args: --timeout=5m ./...
+          working-directory: ${{ env.SERVICE_PATH }}
           skip-cache: true
 
 # -----------------------------
