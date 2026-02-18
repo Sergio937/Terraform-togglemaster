@@ -37,6 +37,8 @@ except psycopg2.OperationalError as e:
 
 
 # --- Middleware de Autenticação ---
+
+
 def require_auth(f):
     """ Middleware para validar a chave de API contra o auth-service """
     @wraps(f)
@@ -67,6 +69,7 @@ def require_auth(f):
 
 
 # --- Endpoints da API ---
+
 
 @app.route('/health')
 def health():
