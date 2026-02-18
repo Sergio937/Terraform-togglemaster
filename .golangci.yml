@@ -1,0 +1,217 @@
+# golangci-lint configuration
+# For Go services: auth-service, evaluation-service
+
+run:
+  # Timeout for analysis
+  timeout: 5m
+  
+  # Include test files
+  tests: true
+  
+  # Which dirs to skip
+  skip-dirs:
+    - vendor
+    - .git
+    - bin
+    - build
+  
+  # Which files to skip
+  skip-files:
+    - ".*\\.pb\\.go$"
+    - ".*_generated\\.go$"
+
+# Output configuration
+output:
+  # Format: colored-line-number|line-number|json|tab|checkstyle|code-climate
+  format: colored-line-number
+  
+  # Print lines of code with issue
+  print-issued-lines: true
+  
+  # Print linter name in the end of issue text
+  print-linter-name: true
+
+# Linters configuration
+linters:
+  enable:
+    - errcheck      # Check for unchecked errors
+    - gosimple      # Simplify code
+    - govet         # Vet examines Go source code
+    - ineffassign   # Detect ineffectual assignments
+    - staticcheck   # Go static analysis
+    - unused        # Check for unused code
+    - gosec         # Security checks
+    - gofmt         # Check formatting
+    - goimports     # Check imports
+    - misspell      # Spell checker
+    - revive        # Golint replacement
+    - typecheck     # Type checking
+    - unconvert     # Remove unnecessary type conversions
+    - unparam       # Unused function parameters
+    - goconst       # Find repeated strings that could be constants
+    - gocyclo       # Cyclomatic complexity
+    - dupl          # Code clone detection
+    - bodyclose     # Check HTTP response body closes
+    - exportloopref # Check for pointers to loop variables
+    - nilerr        # Check nil errors
+    
+  disable:
+    - deadcode      # Deprecated
+    - varcheck      # Deprecated
+    - structcheck   # Deprecated
+    - ifshort       # Deprecated
+
+# Linters settings
+linters-settings:
+  errcheck:
+    # Report about not checking of errors in type assertions
+    check-type-assertions: true
+    # Report about assignment of errors to blank identifier
+    check-blank: true
+    
+  govet:
+    # Enable all analyzers
+    enable-all: true
+    
+  gofmt:
+    # Simplify code
+    simplify: true
+    
+  goimports:
+    # Put imports beginning with prefix after 3rd-party packages
+    local-prefixes: github.com/
+    
+  gosec:
+    # Select a subset of rules to run
+    # G101: Look for hard coded credentials
+    # G102: Bind to all interfaces
+    # G103: Audit the use of unsafe block
+    # G104: Audit errors not checked
+    # G106: Audit the use of ssh.InsecureIgnoreHostKey
+    # G107: Url provided to HTTP request as taint input
+    # G201: SQL query construction using format string
+    # G202: SQL query construction using string concatenation
+    # G203: Use of unescaped data in HTML templates
+    # G204: Audit use of command execution
+    # G301: Poor file permissions used when creating a directory
+    # G302: Poor file permissions used when creation file or using chmod
+    # G303: Creating tempfile using a predictable path
+    # G304: File path provided as taint input
+    # G305: File traversal when extracting zip archive
+    # G401: Detect the usage of DES, RC4, MD5 or SHA1
+    # G402: Look for bad TLS connection settings
+    # G403: Ensure minimum RSA key length of 2048 bits
+    # G404: Insecure random number source (rand)
+    includes:
+      - G101
+      - G102
+      - G103
+      - G104
+      - G106
+      - G107
+      - G201
+      - G202
+      - G203
+      - G204
+      - G301
+      - G302
+      - G303
+      - G304
+      - G305
+      - G401
+      - G402
+      - G403
+      - G404
+    # Severity level to fail on: low, medium or high
+    severity: high
+    confidence: medium
+    
+  revive:
+    # Enable all available rules
+    enable-all-rules: false
+    # Specific rules to enable
+    rules:
+      - name: blank-imports
+      - name: context-as-argument
+      - name: context-keys-type
+      - name: dot-imports
+      - name: error-return
+      - name: error-strings
+      - name: error-naming
+      - name: exported
+      - name: if-return
+      - name: increment-decrement
+      - name: var-naming
+      - name: var-declaration
+      - name: package-comments
+      - name: range
+      - name: receiver-naming
+      - name: time-naming
+      - name: unexported-return
+      - name: indent-error-flow
+      - name: errorf
+      - name: empty-block
+      - name: superfluous-else
+      - name: unused-parameter
+      - name: unreachable-code
+      - name: redefines-builtin-id
+      
+  gocyclo:
+    # Minimal cyclomatic complexity to report
+    min-complexity: 15
+    
+  dupl:
+    # Tokens count to trigger issue
+    threshold: 100
+    
+  goconst:
+    # Minimal length of string constant
+    min-len: 3
+    # Minimum occurrences count to trigger
+    min-occurrences: 3
+    
+  misspell:
+    # Locale to use
+    locale: US
+    
+issues:
+  # Maximum issues count per one linter
+  max-issues-per-linter: 0
+  
+  # Maximum count of issues with the same text
+  max-same-issues: 0
+  
+  # Exclude known issues
+  exclude-use-default: false
+  
+  # Exclude specific rules
+  exclude-rules:
+    # Exclude some linters from running on tests files
+    - path: _test\.go
+      linters:
+        - gocyclo
+        - errcheck
+        - dupl
+        - gosec
+        - goconst
+        
+    # Exclude some staticcheck messages
+    - linters:
+        - staticcheck
+      text: "SA9003:"
+      
+    # Exclude lll issues for long lines with go:generate
+    - linters:
+        - lll
+      source: "^//go:generate "
+
+# Severity configuration
+severity:
+  # Default value is empty string
+  default-severity: error
+  
+  # Rules per linter
+  rules:
+    - linters:
+        - dupl
+      severity: info
