@@ -708,14 +708,6 @@ kubectl logs -n kube-system -l component=kube-controller-manager
 # Eventos do cluster
 kubectl get events --all-namespaces --sort-by='.lastTimestamp'
 ```
-
----
-
-
----
-
-## 🧹 Cleanup
-
 ### **Destroy Infrastructure:**
 
 ```bash
@@ -734,33 +726,6 @@ terraform destroy -target=aws_eks_cluster.main
 - ECR images
 - DynamoDB tables
 - All networking resources
-
----
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create feature branch
-3. Make changes
-4. Run tests and security scans locally
-5. Submit Pull Request
-
----
-
-## 📝 License
-
-This project is licensed under the MIT License.
-
----
-
-## 🙋 Support
-
-Para ajuda:
-- **Documentação**: Este README.md contém todas as informações necessárias
-- **Issues**: Abra uma issue no GitHub
-- **Scripts**: Use `./scripts/gitops-manager.sh` para operações comuns
-
----
 
 ## ✅ Project Status
 
