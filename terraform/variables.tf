@@ -10,6 +10,12 @@ variable "project_name" {
   default     = "togglemaster"
 }
 
+variable "environment" {
+  description = "Ambiente de deploy (dev, staging, prod)"
+  type        = string
+  default     = "dev"
+}
+
 variable "vpc_cidr" {
   description = "CIDR da VPC"
   type        = string

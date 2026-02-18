@@ -2,13 +2,13 @@ name: Auth Service CI
 
 on:
   push:
-    branches: ["Cloud-AWS"]
+    branches: ["Main"]
     paths:
       - "Kubernetes/auth-service/**"
       - ".github/workflows/auth-service.yml"
 
   pull_request:
-    branches: ["Cloud-AWS"]
+    branches: ["Main"]
     paths:
       - "Kubernetes/auth-service/**"
       - ".github/workflows/auth-service.yml"

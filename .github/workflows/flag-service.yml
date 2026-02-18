@@ -2,13 +2,13 @@ name: Flag Service CI
 
 on:
   push:
-    branches: ["Cloud-AWS"]
+    branches: ["Main"]
     paths:
       - "Kubernetes/flag-service/**"
       - ".github/workflows/flag-service.yml"
 
   pull_request:
-    branches: ["Cloud-AWS"]
+    branches: ["Main"]
     paths:
       - "Kubernetes/flag-service/**"
       - ".github/workflows/flag-service.yml"
