@@ -2,13 +2,13 @@ name: Evaluation Service CI
 
 on:
   push:
-    branches: ["Main"]
+    branches: ["main"]
     paths:
       - "Kubernetes/evaluation-service/**"
       - ".github/workflows/evaluation-service.yml"
 
   pull_request:
-    branches: ["Main"]
+    branches: ["main"]
     paths:
       - "Kubernetes/evaluation-service/**"
       - ".github/workflows/evaluation-service.yml"

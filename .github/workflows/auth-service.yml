@@ -2,13 +2,13 @@ name: Auth Service CI
 
 on:
   push:
-    branches: ["Main"]
+    branches: ["main"]
     paths:
       - "Kubernetes/auth-service/**"
       - ".github/workflows/auth-service.yml"
 
   pull_request:
-    branches: ["Main"]
+    branches: ["main"]
     paths:
       - "Kubernetes/auth-service/**"
       - ".github/workflows/auth-service.yml"
@@ -66,6 +66,7 @@ jobs:
         uses: golangci/golangci-lint-action@v6
         with:
           version: latest
+          working-directory: Kubernetes/auth-service/auth-service
           args: --timeout=5m ./...
 
 # ---------------- SECURITY ----------------
