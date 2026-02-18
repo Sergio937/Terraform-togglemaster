@@ -776,6 +776,3 @@ Para ajuda:
 
 ---
 
-**Built with ❤️ using Terraform, Kubernetes, ArgoCD and DevSecOps best practices**
-
-**Cluster**: togglemaster | **Region**: us-east-1 | **Account**: 913430344673
