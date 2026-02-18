@@ -16,6 +16,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: "1.22.x"
+          cache-dependency-path: Kubernetes/auth-service/auth-service/go.sum
       - name: Tidy modules
         working-directory: Kubernetes/auth-service/auth-service
         run: go mod tidy
@@ -43,12 +44,14 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: "1.22.x"
+          cache-dependency-path: Kubernetes/auth-service/auth-service/go.sum
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
           version: v1.61.0
           working-directory: Kubernetes/auth-service/auth-service
           args: --timeout=5m
+          skip-cache: true
 
   security:
     runs-on: ubuntu-latest
@@ -60,6 +63,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: "1.22.x"
+          cache-dependency-path: Kubernetes/auth-service/auth-service/go.sum
       - name: Install gosec
         run: go install github.com/securego/gosec/v2/cmd/gosec@latest
       - name: Run gosec (high only)
@@ -89,12 +93,11 @@ jobs:
           docker build -t auth-service:${COMMIT_SHA} -f Dockerfile .
           docker tag auth-service:${COMMIT_SHA} auth-service:latest
       - name: Trivy Container Scan (fail on critical)
-        uses: aquasecurity/trivy-action@0.20.0
-        with:
-          image-ref: auth-service:${{ github.sha }}
-          format: 'table'
-          severity: CRITICAL
-          exit-code: "1"
+        run: |
+          COMMIT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:latest image --severity CRITICAL --exit-code 1 \
+            auth-service:${COMMIT_SHA}
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:

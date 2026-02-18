@@ -7,24 +7,9 @@ run:
   
   # Include test files
   tests: true
-  
-  # Which dirs to skip
-  skip-dirs:
-    - vendor
-    - .git
-    - bin
-    - build
-  
-  # Which files to skip
-  skip-files:
-    - ".*\\.pb\\.go$"
-    - ".*_generated\\.go$"
 
 # Output configuration
 output:
-  # Format: colored-line-number|line-number|json|tab|checkstyle|code-climate
-  format: colored-line-number
-  
   # Print lines of code with issue
   print-issued-lines: true
   
@@ -186,6 +171,16 @@ issues:
   
   # Exclude specific rules
   exclude-rules:
+    # Exclude vendor, bin, build directories
+    - path: (vendor|bin|build)/
+      linters:
+        - all
+        
+    # Exclude generated files
+    - path: '(.*\.pb\.go|.*_generated\.go)$'
+      linters:
+        - all
+        
     # Exclude some linters from running on tests files
     - path: _test\.go
       linters:

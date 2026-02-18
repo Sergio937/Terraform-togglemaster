@@ -91,12 +91,11 @@ jobs:
           docker build -t targeting-service:${COMMIT_SHA} -f Dockerfile .
           docker tag targeting-service:${COMMIT_SHA} targeting-service:latest
       - name: Trivy Container Scan (fail on critical)
-        uses: aquasecurity/trivy-action@0.20.0
-        with:
-          image-ref: targeting-service:${{ github.sha }}
-          format: 'table'
-          severity: CRITICAL
-          exit-code: "1"
+        run: |
+          COMMIT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:latest image --severity CRITICAL --exit-code 1 \
+            targeting-service:${COMMIT_SHA}
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
