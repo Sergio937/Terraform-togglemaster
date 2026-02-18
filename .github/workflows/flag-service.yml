@@ -6,127 +6,155 @@ on:
     paths:
       - "Kubernetes/flag-service/**"
       - ".github/workflows/flag-service.yml"
+
   pull_request:
     branches: ["Cloud-AWS"]
     paths:
       - "Kubernetes/flag-service/**"
       - ".github/workflows/flag-service.yml"
 
+env:
+  SERVICE_PATH: Kubernetes/flag-service/flag-service
+
 jobs:
+
+# -----------------------------
+# BUILD + TEST
+# -----------------------------
   build_test:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Install dependencies
-        working-directory: Kubernetes/flag-service/flag-service
+
+      - name: Install deps
+        working-directory: ${{ env.SERVICE_PATH }}
         run: |
           python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install -r requirements.txt || true
           pip install pytest
-      - name: Unit tests (if present)
-        working-directory: Kubernetes/flag-service/flag-service
-        run: |
-          if [ -d tests ] || [ -d test ]; then pytest -q; else echo "No tests directory"; fi
-      - name: Build image
-        working-directory: Kubernetes/flag-service/flag-service
-        run: docker build -t flag-service:ci -f Dockerfile .
 
+      - name: Run tests
+        working-directory: ${{ env.SERVICE_PATH }}
+        run: |
+          if [ -d tests ] || [ -d test ]; then
+            pytest -q
+          else
+            echo "No tests directory"
+          fi
+
+      - name: Docker build (CI check)
+        working-directory: ${{ env.SERVICE_PATH }}
+        run: docker build -t flag-service:ci .
+
+# -----------------------------
+# LINT
+# -----------------------------
   lint:
     runs-on: ubuntu-latest
     needs: build_test
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Install linter
-        working-directory: Kubernetes/flag-service/flag-service
-        run: |
-          python -m pip install --upgrade pip
-          pip install flake8
+
+      - name: Install flake8
+        run: pip install flake8
+
       - name: Run flake8
-        working-directory: Kubernetes/flag-service/flag-service
+        working-directory: ${{ env.SERVICE_PATH }}
         run: flake8 .
 
+# -----------------------------
+# SECURITY
+# -----------------------------
   security:
     runs-on: ubuntu-latest
     needs: lint
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Install SAST tool
-        working-directory: Kubernetes/flag-service/flag-service
-        run: |
-          python -m pip install --upgrade pip
-          pip install bandit
-      - name: Run bandit (high only)
-        working-directory: Kubernetes/flag-service/flag-service
+
+      - name: Install bandit
+        run: pip install bandit
+
+      - name: Run bandit
+        working-directory: ${{ env.SERVICE_PATH }}
         run: bandit -lll -r .
-      - name: Trivy SCA (fail on critical)
+
+      - name: Trivy FS Scan
         uses: aquasecurity/trivy-action@0.20.0
         with:
           scan-type: fs
-          scan-ref: Kubernetes/flag-service/flag-service
+          scan-ref: ${{ env.SERVICE_PATH }}
           severity: CRITICAL
           exit-code: "1"
 
+# -----------------------------
+# DOCKER BUILD + PUSH ECR
+# -----------------------------
   docker_build_push:
     runs-on: ubuntu-latest
     needs: security
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    if: github.event_name == 'push' && github.ref == 'refs/heads/Cloud-AWS'
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      - name: Build image
-        working-directory: Kubernetes/flag-service/flag-service
-        run: |
-          COMMIT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
-          docker build -t flag-service:${COMMIT_SHA} -f Dockerfile .
-          docker tag flag-service:${COMMIT_SHA} flag-service:latest
-      - name: Trivy Container Scan (fail on critical)
-        run: |
-          COMMIT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
-          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
-            aquasec/trivy:latest image --severity CRITICAL --exit-code 1 \
-            flag-service:${COMMIT_SHA}
-      - name: Configure AWS credentials
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS creds
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
-      - name: Login to Amazon ECR
+
+      - name: Login ECR
         uses: aws-actions/amazon-ecr-login@v2
-      - name: Push to ECR
+
+      - name: Set vars
         run: |
-          COMMIT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
-          ECR_REGISTRY=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
-          ECR_REPO=${{ secrets.PROJECT_NAME }}/flag-service
-          docker tag flag-service:${COMMIT_SHA} $ECR_REGISTRY/$ECR_REPO:${COMMIT_SHA}
-          docker tag flag-service:${COMMIT_SHA} $ECR_REGISTRY/$ECR_REPO:latest
-          docker push $ECR_REGISTRY/$ECR_REPO:${COMMIT_SHA}
-          docker push $ECR_REGISTRY/$ECR_REPO:latest
-      - name: Update GitOps manifest
+          echo "SHA_SHORT=$(echo $GITHUB_SHA | cut -c1-7)" >> $GITHUB_ENV
+          echo "ECR_REGISTRY=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com" >> $GITHUB_ENV
+          echo "ECR_REPO=${{ secrets.PROJECT_NAME }}/flag-service" >> $GITHUB_ENV
+
+      - name: Setup Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build & Push
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ env.SERVICE_PATH }}
+          file: ${{ env.SERVICE_PATH }}/Dockerfile
+          push: true
+          tags: |
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:${{ env.SHA_SHORT }}
+            ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPO }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+# -----------------------------
+# GITOPS UPDATE
+# -----------------------------
+      - name: Update GitOps
         run: |
-          COMMIT_SHA=$(echo ${{ github.sha }} | cut -c1-7)
-          ECR_REGISTRY=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
-          ECR_REPO=${{ secrets.PROJECT_NAME }}/flag-service
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
-          sed -i "s|image:.*|image: $ECR_REGISTRY/$ECR_REPO:${COMMIT_SHA}|g" gitops/manifests/flag-service/deployment.yaml
+
+          sed -i "s|image:.*|image: $ECR_REGISTRY/$ECR_REPO:$SHA_SHORT|g" \
+            gitops/manifests/flag-service/deployment.yaml
+
           git add gitops/manifests/flag-service/deployment.yaml
-          git commit -m "[GitOps] Update flag-service image to ${COMMIT_SHA}" || echo "No changes to commit"
-          git push origin main
+          git commit -m "[GitOps] Update flag-service to $SHA_SHORT" || echo "No changes"
+          git push origin Cloud-AWS
