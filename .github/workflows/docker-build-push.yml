@@ -1,0 +1,78 @@
+name: Docker Build & Push to ECR
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "Kubernetes/**"
+      - ".github/workflows/docker-build-push.yml"
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service:
+          - analytics-service
+          - auth-service
+          - evaluation-service
+          - flag-service
+          - targeting-service
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+        id: login-ecr
+
+      - name: Set image tags
+        id: vars
+        run: |
+          SHA_SHORT=$(echo $GITHUB_SHA | cut -c1-7)
+          ECR_REGISTRY=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com
+          ECR_REPO=${{ secrets.PROJECT_NAME }}/${{ matrix.service }}
+          
+          echo "SHA_SHORT=${SHA_SHORT}" >> $GITHUB_OUTPUT
+          echo "ECR_REGISTRY=${ECR_REGISTRY}" >> $GITHUB_OUTPUT
+          echo "ECR_REPO=${ECR_REPO}" >> $GITHUB_OUTPUT
+          echo "ECR_IMAGE=${ECR_REGISTRY}/${ECR_REPO}" >> $GITHUB_OUTPUT
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push to ECR
+        uses: docker/build-push-action@v5
+        with:
+          context: ./Kubernetes/${{ matrix.service }}/${{ matrix.service }}
+          file: ./Kubernetes/${{ matrix.service }}/${{ matrix.service }}/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.vars.outputs.ECR_IMAGE }}:${{ steps.vars.outputs.SHA_SHORT }}
+            ${{ steps.vars.outputs.ECR_IMAGE }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Update GitOps manifest
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          
+          # Update the deployment.yaml with new image
+          sed -i "s|image:.*|image: ${{ steps.vars.outputs.ECR_IMAGE }}:${{ steps.vars.outputs.SHA_SHORT }}|g" \
+            gitops/manifests/${{ matrix.service }}/deployment.yaml
+          
+          # Commit and push if there are changes
+          git add gitops/manifests/${{ matrix.service }}/deployment.yaml
+          git commit -m "[GitOps] Update ${{ matrix.service }} image to ${{ steps.vars.outputs.SHA_SHORT }}" || echo "No changes"
+          git push origin main
