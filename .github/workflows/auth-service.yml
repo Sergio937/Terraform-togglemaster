@@ -111,7 +111,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: security
 
-    if: github.event_name == 'push' && github.ref == 'refs/heads/Main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     defaults:
       run:

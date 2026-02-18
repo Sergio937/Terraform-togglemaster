@@ -131,7 +131,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: security
 
-    if: github.event_name == 'push' && github.ref == 'refs/heads/Main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
       - uses: actions/checkout@v4
@@ -180,4 +180,4 @@ jobs:
 
           git add gitops/manifests/evaluation-service/deployment.yaml
           git commit -m "[GitOps] Update evaluation-service to $SHA_SHORT" || echo "No changes"
-          git push origin Main
+          git push origin main
