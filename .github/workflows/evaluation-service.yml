@@ -94,6 +94,9 @@ jobs:
   security:
     runs-on: ubuntu-latest
     needs: lint
+    defaults:
+      run:
+        working-directory: ${{ env.SERVICE_PATH }}
 
     steps:
       - uses: actions/checkout@v4
@@ -103,11 +106,13 @@ jobs:
           go-version: "1.22.x"
           cache: false
 
+      - name: Go mod tidy and download
+        run: go mod tidy && go mod download
+
       - name: Install gosec
         run: go install github.com/securego/gosec/v2/cmd/gosec@latest
 
       - name: Run gosec
-        working-directory: ${{ env.SERVICE_PATH }}
         run: gosec -severity high ./...
 
       - name: Trivy FS Scan
