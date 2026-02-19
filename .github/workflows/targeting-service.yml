@@ -47,11 +47,14 @@ jobs:
             echo "- Commit: ${{ github.sha }}"
           } >> $GITHUB_STEP_SUMMARY
 
-      - uses: actions/setup-python@v5
+      - name: Setup Python
+        id: setup_python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
       - name: Install dependencies
+        id: install_deps
         working-directory: ${{ env.SERVICE_PATH }}
         run: |
           python -m pip install --upgrade pip
@@ -59,6 +62,7 @@ jobs:
           pip install pytest
 
       - name: Run tests
+        id: run_tests
         working-directory: ${{ env.SERVICE_PATH }}
         run: |
           if [ -d tests ] || [ -d test ]; then
@@ -68,8 +72,24 @@ jobs:
           fi
 
       - name: Build Docker image (validation)
+        id: docker_build
         working-directory: ${{ env.SERVICE_PATH }}
         run: docker build -t targeting-service:ci .
+
+      - name: Build & Test result
+        if: ${{ always() }}
+        run: |
+          {
+            echo "### Build & Test result"
+            echo "| Step | Result |"
+            echo "|---|---|"
+            echo "| Setup Python | ${{ steps.setup_python.outcome }} |"
+            echo "| Install dependencies | ${{ steps.install_deps.outcome }} |"
+            echo "| Run tests | ${{ steps.run_tests.outcome }} |"
+            echo "| Build Docker image | ${{ steps.docker_build.outcome }} |"
+            echo ""
+            echo "- Overall: ${{ job.status == 'success' && '✅ SUCCESS' || '❌ FAILURE' }}"
+          } >> $GITHUB_STEP_SUMMARY
 
 
 # ---------------- LINT ----------------
@@ -90,16 +110,34 @@ jobs:
             echo "- Ref: ${{ github.ref_name }}"
           } >> $GITHUB_STEP_SUMMARY
 
-      - uses: actions/setup-python@v5
+      - name: Setup Python
+        id: setup_python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
       - name: Install flake8
+        id: install_lint
         run: pip install flake8
 
       - name: Run flake8
+        id: run_lint
         working-directory: ${{ env.SERVICE_PATH }}
         run: flake8 .
+
+      - name: Lint result
+        if: ${{ always() }}
+        run: |
+          {
+            echo "### Lint result"
+            echo "| Step | Result |"
+            echo "|---|---|"
+            echo "| Setup Python | ${{ steps.setup_python.outcome }} |"
+            echo "| Install flake8 | ${{ steps.install_lint.outcome }} |"
+            echo "| Run flake8 | ${{ steps.run_lint.outcome }} |"
+            echo ""
+            echo "- Overall: ${{ job.status == 'success' && '✅ SUCCESS' || '❌ FAILURE' }}"
+          } >> $GITHUB_STEP_SUMMARY
 
 
 # ---------------- SECURITY ----------------
@@ -120,23 +158,43 @@ jobs:
             echo "- Ref: ${{ github.ref_name }}"
           } >> $GITHUB_STEP_SUMMARY
 
-      - uses: actions/setup-python@v5
+      - name: Setup Python
+        id: setup_python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
       - name: Install bandit
+        id: install_security_tools
         run: pip install bandit
 
       - name: Run bandit
+        id: run_bandit
         working-directory: ${{ env.SERVICE_PATH }}
         run: bandit -lll -r .
 
       - name: Trivy FS Scan
+        id: run_trivy
         uses: aquasecurity/trivy-action@0.20.0
         with:
           scan-type: fs
           scan-ref: ${{ env.SERVICE_PATH }}
           severity: CRITICAL
           exit-code: "1"
+
+      - name: Security result
+        if: ${{ always() }}
+        run: |
+          {
+            echo "### Security Scan result"
+            echo "| Step | Result |"
+            echo "|---|---|"
+            echo "| Setup Python | ${{ steps.setup_python.outcome }} |"
+            echo "| Install Bandit | ${{ steps.install_security_tools.outcome }} |"
+            echo "| Run Bandit | ${{ steps.run_bandit.outcome }} |"
+            echo "| Run Trivy | ${{ steps.run_trivy.outcome }} |"
+            echo ""
+            echo "- Overall: ${{ job.status == 'success' && '✅ SUCCESS' || '❌ FAILURE' }}"
+          } >> $GITHUB_STEP_SUMMARY
 
 
