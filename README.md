@@ -11,7 +11,7 @@ ToggleMaster é uma plataforma de feature flags que permite:
 - ✅ Analytics e monitoramento em tempo real
 - ✅ Autenticação e autorização JWT
 - ✅ Deploy automático com GitOps (ArgoCD)
-- ✅ CI/CD completo com GitHub Actions
+- ✅ CI com GitHub Actions + CD com GitOps (ArgoCD)
 - ✅ Segurança integrada (Trivy, gosec, bandit)
 
 ## 🚀 Quick Start
@@ -60,9 +60,18 @@ kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.pas
 kubectl get svc argocd-server -n argocd
 ```
 
-### 6️⃣ Build & Push das Imagens (GitHub Actions)
+### 6️⃣ Build & Push das Imagens (script local)
 
-> Execute os workflows dos 5 serviços e aguarde o push para ECR antes de aplicar `gitops/apps`.
+> O push para ECR é feito manualmente com `scripts/build-push-ecr.sh`.
+> Os workflows do GitHub Actions ficam apenas para validação de CI (build/test/lint/security).
+
+```bash
+# Build & push de todos os serviços com a mesma tag
+./scripts/build-push-ecr.sh all v1.0.0
+
+# Ou um serviço específico
+./scripts/build-push-ecr.sh auth-service v1.0.0
+```
 
 ```bash
 # Verificar se as imagens já existem no ECR
@@ -361,11 +370,11 @@ Cada microsserviço possui um pipeline completo com 4 jobs:
 ### **Arquitetura GitOps:**
 
 ```
-Developer → GitHub → CI Pipeline → ECR
-                ↓
-          Update GitOps
-                ↓
-            ArgoCD ← monitors Git
+Developer → GitHub → CI Pipeline (validate)
+        ↓
+   build-push-ecr.sh → ECR
+        ↓
+    ArgoCD ← monitors Git
                 ↓
           Deploy to EKS
                 ↓
@@ -405,12 +414,11 @@ gitops/
 ### **Fluxo de Deploy Automático:**
 
 1. **Code Change**: Developer faz push de código para `main`
-2. **CI Pipeline**: GitHub Actions executa build, test, security scans
-3. **Image Build**: Docker image criada e enviada para ECR com tag SHA
-4. **GitOps Update**: Workflow atualiza tag da imagem em `gitops/manifests/`
-5. **ArgoCD Sync**: ArgoCD detecta mudança e sincroniza automaticamente
-6. **Kubernetes Deploy**: ArgoCD aplica manifestos no cluster EKS
-7. **Verification**: Health checks validam deploy bem-sucedido
+2. **CI Pipeline**: GitHub Actions executa build, test, lint e security scans
+3. **Image Publish**: `scripts/build-push-ecr.sh` publica as imagens no ECR com a tag de versão
+4. **ArgoCD Sync**: ArgoCD sincroniza os manifests versionados do repositório
+5. **Kubernetes Deploy**: ArgoCD aplica manifestos no cluster EKS
+6. **Verification**: Health checks validam deploy bem-sucedido
 
 ### **Instalação do ArgoCD:**
 

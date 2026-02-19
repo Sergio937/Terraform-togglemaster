@@ -31,9 +31,9 @@ gitops/
 
 > O Ingress Controller também é gerenciado por GitOps via `apps/ingress-nginx.yaml`.
 
-1. **CI Pipeline** (GitHub Actions) → Build, Test, Security Scan → Push image para ECR
-2. **CI atualiza tag** → Abre PR/commit no repositório GitOps com nova imagem
-3. **ArgoCD monitora** → Detecta mudança no repositório GitOps
+1. **CI Pipeline** (GitHub Actions) → Build, Test, Lint, Security Scan
+2. **Publicação de imagem** → `scripts/build-push-ecr.sh` faz build/push para ECR
+3. **ArgoCD monitora** → Detecta mudanças no repositório GitOps
 4. **ArgoCD sincroniza** → Aplica as mudanças no cluster EKS automaticamente
 
 ## Vantagens
