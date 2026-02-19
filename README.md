@@ -10,11 +10,8 @@ ToggleMaster é uma plataforma de feature flags que permite:
 - ✅ Targeting avançado de usuários e segmentação
 - ✅ Analytics e monitoramento em tempo real
 - ✅ Autenticação e autorização JWT
-- ✅ Deploy automático com GitOps (ArgoCD)
-- ✅ CI com GitHub Actions + CD com GitOps (ArgoCD)
-- ✅ Segurança integrada (Trivy, gosec, bandit)
 
-## 🚀 Quick Start
+## Como configurar a estrutura
 
 
 ### 1️⃣ Configurar AWS CLI 
@@ -26,7 +23,7 @@ AWS_SECRET_ACCESS_KEY=<your-secret>
 AWS_DEFAULT_REGION=us-east-1
 ```
 
-### 2️⃣ Bootstrap do Backend Terraform (S3 + DynamoDB)
+### 2️⃣ Rodar o bootstrap para criar o Backend Terraform (S3 + DynamoDB)
 
 ```bash
 cd terraform/bootstrap
@@ -34,7 +31,7 @@ terraform init
 terraform apply -var-file=bootstrap.tfvars
 ```
 
-### 3️⃣ Deploy da Infraestrutura Terraform (backend remoto)
+### 3️⃣ Deploy da Infraestrutura via Terraform
 
 ```bash
 cd ../
@@ -68,10 +65,6 @@ kubectl get svc argocd-server -n argocd
 ```bash
 # Build & push de todos os serviços com a mesma tag
 ./scripts/build-push-ecr.sh all v1.0.0
-
-# Ou um serviço específico
-./scripts/build-push-ecr.sh auth-service v1.0.0
-```
 
 ```bash
 # Verificar se as imagens já existem no ECR
@@ -255,8 +248,6 @@ kubectl get jobs -n togglemaster
 
 ---
 
-##  Infraestrutura
-
 ### **Recursos AWS Provisionados:**
 
 #### **Compute:**
@@ -420,58 +411,6 @@ gitops/
 5. **Kubernetes Deploy**: ArgoCD aplica manifestos no cluster EKS
 6. **Verification**: Health checks validam deploy bem-sucedido
 
-### **Instalação do ArgoCD:**
-
-```bash
-# Via script (recomendado)
-./gitops/argocd/install.sh
-
-# Ou manualmente
-kubectl create namespace argocd
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-
-# Expor via LoadBalancer
-kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "LoadBalancer"}}'
-
-# Obter senha
-kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
-
-# Obter URL
-kubectl get svc argocd-server -n argocd
-```
-
-### **Configurando ArgoCD Applications:**
-
-Quando fizer push do repositório para GitHub, atualize as ArgoCD Applications:
-
-```yaml
-# gitops/apps/auth-service.yaml
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: auth-service
-  namespace: argocd
-spec:
-  project: default
-  source:
-    repoURL: https://github.com/Sergio937/Terraform-togglemaster.git
-    targetRevision: main
-    path: gitops/manifests/auth-service
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: togglemaster
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-```
-
-Aplicar:
-```bash
-kubectl apply -f gitops/apps/
-```
-
----
 
 ##  CI/CD Pipeline
 
@@ -582,6 +521,7 @@ kubectl create secret docker-registry ecr-secret \
   --docker-password=$(aws ecr get-login-password --region us-east-1) \
   --namespace=togglemaster
 
+### **Em caso de problema você pode verificar:**
 
 ### **ArgoCD não sincroniza:**
 
@@ -638,7 +578,10 @@ kubectl logs -n kube-system -l component=kube-controller-manager
 # Eventos do cluster
 kubectl get events --all-namespaces --sort-by='.lastTimestamp'
 ```
-### **Destroy Infrastructure:**
+
+### **Para destruir a infraestrutura via terraform:**
+
+### **Destroy:**
 
 ```bash
 cd terraform
@@ -650,7 +593,7 @@ terraform destroy
 terraform destroy -target=aws_eks_cluster.main
 ```
 
-**⚠️ Warning:** This will delete:
+**⚠️ Warning:** vai deletar todos os recursos criados:
 - EKS cluster
 - All databases (data loss!)
 - ECR images
