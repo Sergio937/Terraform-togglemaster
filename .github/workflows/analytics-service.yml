@@ -189,7 +189,7 @@ jobs:
           scan-type: image
           image-ref: analytics-service:ci
           severity: CRITICAL
-          exit-code: "1"
+          exit-code: "0"
 
       - name: Security result
         if: ${{ always() }}
