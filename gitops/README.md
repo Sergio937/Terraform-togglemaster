@@ -11,7 +11,8 @@ gitops/
 │   ├── auth-service.yaml
 │   ├── evaluation-service.yaml
 │   ├── flag-service.yaml
-│   └── targeting-service.yaml
+│   ├── targeting-service.yaml
+│   └── ingress.yaml
 ├── manifests/                  # Manifestos K8s organizados por serviço
 │   ├── analytics-service/
 │   ├── auth-service/
@@ -26,6 +27,8 @@ gitops/
 ```
 
 ## Fluxo GitOps
+
+> Pré-requisito para o `ingress.yaml`: instalar um Ingress Controller (NGINX) no cluster EKS.
 
 1. **CI Pipeline** (GitHub Actions) → Build, Test, Security Scan → Push image para ECR
 2. **CI atualiza tag** → Abre PR/commit no repositório GitOps com nova imagem

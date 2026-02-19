@@ -92,6 +92,55 @@ kubectl get pods -n togglemaster
 # Acompanhar eventos (útil para ImagePullBackOff/ErrImagePull)
 kubectl get events -n togglemaster --sort-by='.lastTimestamp'
 ```
+
+### 8️⃣ Instalar Ingress Controller (obrigatório no EKS)
+
+```bash
+# Instalar NGINX Ingress Controller no EKS
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/aws/deploy.yaml
+
+# Aguardar controller ficar pronto
+kubectl wait --namespace ingress-nginx \
+  --for=condition=ready pod \
+  --selector=app.kubernetes.io/component=controller \
+  --timeout=600s
+
+# Validar IngressClass e service do controller
+kubectl get ingressclass
+kubectl get svc -n ingress-nginx ingress-nginx-controller
+```
+
+### 9️⃣ Validar Ingress da aplicação
+
+```bash
+kubectl apply -f gitops/manifests/ingress/ingress.yaml
+kubectl get ingress -n togglemaster -o wide
+```
+
+### 🔁 Reset e Redeploy Limpo (quando precisar recriar tudo)
+
+> Execute na raiz do repositório (`Terraform-togglemaster`), não dentro de `scripts/` ou `gitops/apps/`.
+
+```bash
+# 1) Remover Applications e namespace da aplicação
+kubectl delete -f gitops/apps/ --ignore-not-found=true
+kubectl delete namespace togglemaster --ignore-not-found=true
+
+# 2) Confirmar limpeza
+kubectl get applications -n argocd
+kubectl get ns togglemaster
+
+# 3) Recriar via GitOps
+kubectl apply -f gitops/apps/
+
+# 4) (Opcional) aplicar manifests recursivamente
+kubectl apply -R -f gitops/manifests/
+
+# 5) Validar convergência
+kubectl get applications -n argocd
+kubectl get pods -n togglemaster
+kubectl get jobs -n togglemaster
+```
 ---
 
 ##  Arquitetura

@@ -1,13 +1,13 @@
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: evaluation-service-hpa
+  name: flag-service-hpa
   namespace: togglemaster
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: evaluation-service
+    name: flag-service
   minReplicas: 1
   maxReplicas: 5
   metrics:
