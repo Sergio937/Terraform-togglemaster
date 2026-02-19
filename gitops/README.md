@@ -7,6 +7,7 @@ Este diretório contém os manifestos Kubernetes para deploy via ArgoCD.
 ```
 gitops/
 ├── apps/                       # ArgoCD Applications
+│   ├── ingress-nginx.yaml
 │   ├── analytics-service.yaml
 │   ├── auth-service.yaml
 │   ├── evaluation-service.yaml
@@ -28,7 +29,7 @@ gitops/
 
 ## Fluxo GitOps
 
-> Pré-requisito para o `ingress.yaml`: instalar um Ingress Controller (NGINX) no cluster EKS.
+> O Ingress Controller também é gerenciado por GitOps via `apps/ingress-nginx.yaml`.
 
 1. **CI Pipeline** (GitHub Actions) → Build, Test, Security Scan → Push image para ECR
 2. **CI atualiza tag** → Abre PR/commit no repositório GitOps com nova imagem

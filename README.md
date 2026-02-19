@@ -93,19 +93,14 @@ kubectl get pods -n togglemaster
 kubectl get events -n togglemaster --sort-by='.lastTimestamp'
 ```
 
-### 8️⃣ Instalar Ingress Controller (obrigatório no EKS)
+### 8️⃣ Ingress Controller via GitOps
 
 ```bash
-# Instalar NGINX Ingress Controller no EKS
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/aws/deploy.yaml
+# O app ingress-nginx está em gitops/apps e será aplicado junto com os outros
+kubectl apply -f gitops/apps/
 
-# Aguardar controller ficar pronto
-kubectl wait --namespace ingress-nginx \
-  --for=condition=ready pod \
-  --selector=app.kubernetes.io/component=controller \
-  --timeout=600s
-
-# Validar IngressClass e service do controller
+# Validar controller nginx
+kubectl get applications -n argocd
 kubectl get ingressclass
 kubectl get svc -n ingress-nginx ingress-nginx-controller
 ```

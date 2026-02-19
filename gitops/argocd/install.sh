@@ -79,51 +79,24 @@ echo "⚠️  IMPORTANTE: Salve esta senha!"
 echo "=========================================="
 echo ""
 
-# 4. Perguntar sobre exposição do serviço
-echo "4️⃣  Como deseja acessar o ArgoCD?"
-echo "   1) Port Forward (desenvolvimento - localhost:8080)"
-echo "   2) LoadBalancer (produção - IP externo)"
-echo "   3) Pular por enquanto"
-echo ""
-read -p "Escolha uma opção (1-3): " EXPOSE_OPTION
+# 4. Expor ArgoCD externamente no EKS (LoadBalancer)
+echo "4️⃣  Configurando acesso externo (LoadBalancer no EKS)..."
+kubectl patch svc argocd-server -n "$ARGOCD_NAMESPACE" -p '{"spec": {"type": "LoadBalancer"}}'
 
-case $EXPOSE_OPTION in
-    1)
-        echo ""
-        echo "Iniciando port-forward..."
-        echo "ArgoCD estará disponível em: https://localhost:8080"
-        echo "Use Ctrl+C para parar"
-        echo ""
-        kubectl port-forward svc/argocd-server -n "$ARGOCD_NAMESPACE" 8080:443
-        ;;
-    2)
-        echo ""
-        echo "Configurando LoadBalancer..."
-        kubectl patch svc argocd-server -n "$ARGOCD_NAMESPACE" -p '{"spec": {"type": "LoadBalancer"}}'
-        
-        echo "Aguardando IP externo..."
-        sleep 10
-        
-        EXTERNAL_HOSTNAME=$(kubectl get svc argocd-server -n "$ARGOCD_NAMESPACE" -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-        EXTERNAL_IP=$(kubectl get svc argocd-server -n "$ARGOCD_NAMESPACE" -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-        
-        if [ -n "$EXTERNAL_HOSTNAME" ]; then
-            echo "✅ ArgoCD disponível em: https://$EXTERNAL_HOSTNAME"
-        elif [ -n "$EXTERNAL_IP" ]; then
-            echo "✅ ArgoCD disponível em: https://$EXTERNAL_IP"
-        else
-            echo "⏳ LoadBalancer ainda está sendo provisionado."
-            echo "Execute para verificar: kubectl get svc argocd-server -n argocd"
-        fi
-        ;;
-    3)
-        echo "Você pode acessar mais tarde com:"
-        echo "  kubectl port-forward svc/argocd-server -n argocd 8080:443"
-        ;;
-    *)
-        echo "Opção inválida"
-        ;;
-esac
+echo "   Aguardando endpoint externo..."
+sleep 10
+
+EXTERNAL_HOSTNAME=$(kubectl get svc argocd-server -n "$ARGOCD_NAMESPACE" -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+EXTERNAL_IP=$(kubectl get svc argocd-server -n "$ARGOCD_NAMESPACE" -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+
+if [ -n "$EXTERNAL_HOSTNAME" ]; then
+    echo "✅ ArgoCD disponível em: https://$EXTERNAL_HOSTNAME"
+elif [ -n "$EXTERNAL_IP" ]; then
+    echo "✅ ArgoCD disponível em: https://$EXTERNAL_IP"
+else
+    echo "⏳ LoadBalancer ainda está sendo provisionado."
+    echo "Execute para verificar: kubectl get svc argocd-server -n argocd"
+fi
 
 echo ""
 echo "=========================================="
@@ -144,6 +117,9 @@ echo "   kubectl apply -f gitops/apps/"
 echo ""
 echo "5. Verifique no ArgoCD UI ou com:"
 echo "   kubectl get applications -n argocd"
+echo ""
+echo "Se o DNS externo ainda não resolver, use temporariamente:"
+echo "   kubectl port-forward svc/argocd-server -n argocd 8080:443"
 echo ""
 echo "=========================================="
 echo "  Instalação Concluída! 🎉"
