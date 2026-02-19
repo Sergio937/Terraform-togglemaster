@@ -149,6 +149,12 @@ jobs:
     name: Security Scan
     runs-on: ubuntu-latest
     needs: lint
+    outputs:
+      vuln_total: ${{ steps.parse_trivy.outputs.total }}
+      vuln_critical: ${{ steps.parse_trivy.outputs.critical }}
+      vuln_high: ${{ steps.parse_trivy.outputs.high }}
+      vuln_medium: ${{ steps.parse_trivy.outputs.medium }}
+      vuln_low: ${{ steps.parse_trivy.outputs.low }}
 
     steps:
       - uses: actions/checkout@v4
@@ -188,8 +194,25 @@ jobs:
         with:
           scan-type: image
           image-ref: flag-service:ci
+          format: json
+          output: trivy-results.json
           severity: CRITICAL
           exit-code: "0"
+
+      - name: Parse Trivy results
+        id: parse_trivy
+        run: |
+          TOTAL=$(jq '[.Results[]?.Vulnerabilities[]?] | length' trivy-results.json)
+          CRITICAL=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL")] | length' trivy-results.json)
+          HIGH=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "HIGH")] | length' trivy-results.json)
+          MEDIUM=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "MEDIUM")] | length' trivy-results.json)
+          LOW=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "LOW") ] | length' trivy-results.json)
+
+          echo "total=$TOTAL" >> $GITHUB_OUTPUT
+          echo "critical=$CRITICAL" >> $GITHUB_OUTPUT
+          echo "high=$HIGH" >> $GITHUB_OUTPUT
+          echo "medium=$MEDIUM" >> $GITHUB_OUTPUT
+          echo "low=$LOW" >> $GITHUB_OUTPUT
 
       - name: Security result
         if: ${{ always() }}
@@ -203,7 +226,53 @@ jobs:
             echo "| Run Bandit | ${{ steps.run_bandit.outcome }} |"
             echo "| Build Docker image | ${{ steps.docker_build.outcome }} |"
             echo "| Run Trivy | ${{ steps.run_trivy.outcome }} |"
+            echo "| Parse Trivy results | ${{ steps.parse_trivy.outcome }} |"
+            echo ""
+            echo "#### Vulnerabilities found"
+            echo "- Total: ${{ steps.parse_trivy.outputs.total }}"
+            echo "- CRITICAL: ${{ steps.parse_trivy.outputs.critical }}"
+            echo "- HIGH: ${{ steps.parse_trivy.outputs.high }}"
+            echo "- MEDIUM: ${{ steps.parse_trivy.outputs.medium }}"
+            echo "- LOW: ${{ steps.parse_trivy.outputs.low }}"
             echo ""
             echo "- Overall: ${{ job.status == 'success' && '✅ SUCCESS' || '❌ FAILURE' }}"
+          } >> $GITHUB_STEP_SUMMARY
+
+  final_report:
+    name: Final Report
+    runs-on: ubuntu-latest
+    needs: [build_test, lint, security]
+    if: ${{ always() }}
+
+    steps:
+      - name: Consolidated report
+        run: |
+          {
+            echo "## Final Quality Report"
+            echo ""
+            echo "### Pipeline stages"
+            echo "| Stage | Result |"
+            echo "|---|---|"
+            echo "| Build & Test | ${{ needs.build_test.result }} |"
+            echo "| Lint | ${{ needs.lint.result }} |"
+            echo "| Security Scan | ${{ needs.security.result }} |"
+            echo ""
+            echo "### Checks executed"
+            echo "- Setup Python"
+            echo "- Install dependencies"
+            echo "- Run tests (pytest)"
+            echo "- Build Docker image"
+            echo "- Run flake8"
+            echo "- Run bandit"
+            echo "- Run Trivy Image Scan"
+            echo ""
+            echo "### Trivy vulnerabilities"
+            echo "| Severity | Count |"
+            echo "|---|---:|"
+            echo "| CRITICAL | ${{ needs.security.outputs.vuln_critical || '0' }} |"
+            echo "| HIGH | ${{ needs.security.outputs.vuln_high || '0' }} |"
+            echo "| MEDIUM | ${{ needs.security.outputs.vuln_medium || '0' }} |"
+            echo "| LOW | ${{ needs.security.outputs.vuln_low || '0' }} |"
+            echo "| TOTAL | ${{ needs.security.outputs.vuln_total || '0' }} |"
           } >> $GITHUB_STEP_SUMMARY
 

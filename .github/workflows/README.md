@@ -87,6 +87,12 @@ Cada job gera resumo em `GITHUB_STEP_SUMMARY` com:
 
 Mesmo em falha, o resumo final é gerado com `if: always()`.
 
+Além disso, cada workflow possui um job final **Final Report** que consolida:
+
+- status de todas as etapas do pipeline (`Build & Test`, `Lint`, `Security Scan`)
+- lista de checks executados
+- total de vulnerabilidades do Trivy por severidade (`CRITICAL`, `HIGH`, `MEDIUM`, `LOW`, `TOTAL`)
+
 ---
 
 ## Como rodar manualmente
