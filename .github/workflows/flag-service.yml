@@ -144,6 +144,44 @@ jobs:
           } >> $GITHUB_STEP_SUMMARY
 
 # -----------------------------
+# SONARCLOUD
+# -----------------------------
+  sonar:
+    name: SonarCloud
+    runs-on: ubuntu-latest
+    needs: lint
+    if: ${{ vars.SONAR_ORGANIZATION != '' && vars.SONAR_PROJECT_KEY_PREFIX != '' && secrets.SONAR_TOKEN != '' }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: SonarCloud scan
+        id: sonar_scan
+        uses: SonarSource/sonarqube-scan-action@v5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
+        with:
+          args: >
+            -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
+            -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY_PREFIX }}_${{ env.SERVICE_NAME }}
+            -Dsonar.projectBaseDir=${{ env.SERVICE_PATH }}
+
+      - name: SonarCloud result
+        if: ${{ always() }}
+        run: |
+          {
+            echo "### SonarCloud result"
+            echo "| Step | Result |"
+            echo "|---|---|"
+            echo "| SonarCloud scan | ${{ steps.sonar_scan.outcome }} |"
+            echo ""
+            echo "- Overall: ${{ job.status == 'success' && '✅ SUCCESS' || '❌ FAILURE' }}"
+          } >> $GITHUB_STEP_SUMMARY
+
+# -----------------------------
 # SECURITY
 # -----------------------------
   security:
@@ -261,7 +299,7 @@ jobs:
   final_report:
     name: Final Report
     runs-on: ubuntu-latest
-    needs: [build_test, lint, security]
+    needs: [build_test, lint, sonar, security]
     if: ${{ always() }}
 
     steps:
@@ -275,6 +313,7 @@ jobs:
             echo "|---|---|"
             echo "| Build & Test | ${{ needs.build_test.result }} |"
             echo "| Lint | ${{ needs.lint.result }} |"
+            echo "| SonarCloud | ${{ needs.sonar.result }} |"
             echo "| Security Scan | ${{ needs.security.result }} |"
             echo ""
             echo "### Checks executed"
@@ -284,6 +323,7 @@ jobs:
             echo "- Build Docker image"
             echo "- Run flake8"
             echo "- Run bandit"
+            echo "- Run SonarCloud (when configured)"
             echo "- Run Trivy Image Scan"
             echo ""
             echo "### Trivy vulnerabilities"
