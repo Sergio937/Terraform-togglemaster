@@ -189,14 +189,18 @@ jobs:
         id: run_gosec
         run: gosec -severity high ./...
 
-      - name: Trivy FS Scan
+      - name: Build Docker image (security scan)
+        id: docker_build
+        run: docker build -t auth-service:ci -f Dockerfile .
+
+      - name: Trivy Image Scan
         id: run_trivy
         uses: aquasecurity/trivy-action@0.20.0
         with:
-          scan-type: fs
-          scan-ref: ${{ env.SERVICE_PATH }}
+          scan-type: image
+          image-ref: auth-service:ci
           severity: CRITICAL
-          exit-code: "0"
+          exit-code: "1"
 
       - name: Security result
         if: ${{ always() }}
@@ -209,6 +213,7 @@ jobs:
             echo "| Download modules | ${{ steps.download_modules.outcome }} |"
             echo "| Install gosec | ${{ steps.install_gosec.outcome }} |"
             echo "| Run gosec | ${{ steps.run_gosec.outcome }} |"
+            echo "| Build Docker image | ${{ steps.docker_build.outcome }} |"
             echo "| Run Trivy | ${{ steps.run_trivy.outcome }} |"
             echo ""
             echo "- Overall: ${{ job.status == 'success' && '✅ SUCCESS' || '❌ FAILURE' }}"

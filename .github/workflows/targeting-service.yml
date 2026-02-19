@@ -173,12 +173,17 @@ jobs:
         working-directory: ${{ env.SERVICE_PATH }}
         run: bandit -lll -r .
 
-      - name: Trivy FS Scan
+      - name: Build Docker image (security scan)
+        id: docker_build
+        working-directory: ${{ env.SERVICE_PATH }}
+        run: docker build -t targeting-service:ci .
+
+      - name: Trivy Image Scan
         id: run_trivy
         uses: aquasecurity/trivy-action@0.20.0
         with:
-          scan-type: fs
-          scan-ref: ${{ env.SERVICE_PATH }}
+          scan-type: image
+          image-ref: targeting-service:ci
           severity: CRITICAL
           exit-code: "1"
 
@@ -192,6 +197,7 @@ jobs:
             echo "| Setup Python | ${{ steps.setup_python.outcome }} |"
             echo "| Install Bandit | ${{ steps.install_security_tools.outcome }} |"
             echo "| Run Bandit | ${{ steps.run_bandit.outcome }} |"
+            echo "| Build Docker image | ${{ steps.docker_build.outcome }} |"
             echo "| Run Trivy | ${{ steps.run_trivy.outcome }} |"
             echo ""
             echo "- Overall: ${{ job.status == 'success' && '✅ SUCCESS' || '❌ FAILURE' }}"
