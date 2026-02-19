@@ -77,19 +77,6 @@ Configurações comuns:
 - `trivy-action` (image scan com saída SARIF)
 - upload de SARIF para **GitHub Code Scanning**
 
-### SonarCloud (opcional)
-
-Todos os workflows possuem job `SonarCloud` opcional, executado apenas quando configurado.
-
-Configurações necessárias no repositório GitHub:
-
-- Secret: `SONAR_TOKEN`
-- Variable: `SONAR_ORGANIZATION`
-- Variable: `SONAR_PROJECT_KEY_PREFIX`
-
-Chave final por serviço:
-
-- `${SONAR_PROJECT_KEY_PREFIX}_${SERVICE_NAME}`
 
 ---
 
@@ -102,14 +89,6 @@ Cada job gera resumo em `GITHUB_STEP_SUMMARY` com:
 - status final `Overall` (`✅ SUCCESS` ou `❌ FAILURE`)
 
 Mesmo em falha, o resumo final é gerado com `if: always()`.
-
-Além disso, cada workflow possui um job final **Final Report** que consolida:
-
-- status de todas as etapas do pipeline (`Build & Test`, `Lint`, `Security Scan`)
-- lista de checks executados
-- total de vulnerabilidades do Trivy por severidade (`CRITICAL`, `HIGH`, `MEDIUM`, `LOW`, `TOTAL`)
-
-Quando o SonarCloud estiver configurado, o **Final Report** também mostra o status do stage `SonarCloud`.
 
 ---
 

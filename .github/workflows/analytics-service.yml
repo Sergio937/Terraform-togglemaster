@@ -144,61 +144,6 @@ jobs:
           } >> $GITHUB_STEP_SUMMARY
 
 # -----------------------------
-# SONARCLOUD
-# -----------------------------
-  sonar:
-    name: SonarCloud
-    runs-on: ubuntu-latest
-    needs: lint
-    if: ${{ vars.SONAR_ORGANIZATION != '' && vars.SONAR_PROJECT_KEY_PREFIX != '' }}
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Detect Sonar token
-        id: sonar_token
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: |
-          if [ -n "$SONAR_TOKEN" ]; then
-            echo "has_token=true" >> $GITHUB_OUTPUT
-          else
-            echo "has_token=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: SonarCloud scan
-        id: sonar_scan
-        if: ${{ steps.sonar_token.outputs.has_token == 'true' }}
-        uses: SonarSource/sonarqube-scan-action@v5
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: https://sonarcloud.io
-        with:
-          args: >
-            -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
-            -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY_PREFIX }}_${{ env.SERVICE_NAME }}
-            -Dsonar.projectBaseDir=${{ env.SERVICE_PATH }}
-
-      - name: SonarCloud skipped (missing token)
-        if: ${{ steps.sonar_token.outputs.has_token == 'false' }}
-        run: |
-          echo "SONAR_TOKEN não configurado. Etapa SonarCloud pulada." >> $GITHUB_STEP_SUMMARY
-
-      - name: SonarCloud result
-        if: ${{ always() }}
-        run: |
-          {
-            echo "### SonarCloud result"
-            echo "| Step | Result |"
-            echo "|---|---|"
-            echo "| SonarCloud scan | ${{ steps.sonar_scan.outcome }} |"
-            echo ""
-            echo "- Overall: ${{ job.status == 'success' && '✅ SUCCESS' || '❌ FAILURE' }}"
-          } >> $GITHUB_STEP_SUMMARY
-
-# -----------------------------
 # SECURITY
 # -----------------------------
   security:
@@ -311,45 +256,8 @@ jobs:
             echo "- LOW: ${{ steps.parse_trivy.outputs.low }}"
             echo ""
             echo "- Overall: ${{ job.status == 'success' && '✅ SUCCESS' || '❌ FAILURE' }}"
-          } >> $GITHUB_STEP_SUMMARY
+            } >> $GITHUB_STEP_SUMMARY
 
-  final_report:
-    name: Final Report
-    runs-on: ubuntu-latest
-    needs: [build_test, lint, sonar, security]
-    if: ${{ always() }}
 
-    steps:
-      - name: Consolidated report
-        run: |
-          {
-            echo "## Final Quality Report"
-            echo ""
-            echo "### Pipeline stages"
-            echo "| Stage | Result |"
-            echo "|---|---|"
-            echo "| Build & Test | ${{ needs.build_test.result }} |"
-            echo "| Lint | ${{ needs.lint.result }} |"
-            echo "| SonarCloud | ${{ needs.sonar.result }} |"
-            echo "| Security Scan | ${{ needs.security.result }} |"
-            echo ""
-            echo "### Checks executed"
-            echo "- Setup Python"
-            echo "- Install dependencies"
-            echo "- Run tests (pytest)"
-            echo "- Build Docker image"
-            echo "- Run flake8"
-            echo "- Run bandit"
-            echo "- Run SonarCloud (when configured)"
-            echo "- Run Trivy Image Scan"
-            echo ""
-            echo "### Trivy vulnerabilities"
-            echo "| Severity | Count |"
-            echo "|---|---:|"
-            echo "| CRITICAL | ${{ needs.security.outputs.vuln_critical || '0' }} |"
-            echo "| HIGH | ${{ needs.security.outputs.vuln_high || '0' }} |"
-            echo "| MEDIUM | ${{ needs.security.outputs.vuln_medium || '0' }} |"
-            echo "| LOW | ${{ needs.security.outputs.vuln_low || '0' }} |"
-            echo "| TOTAL | ${{ needs.security.outputs.vuln_total || '0' }} |"
-          } >> $GITHUB_STEP_SUMMARY
+
 
