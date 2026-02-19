@@ -160,9 +160,20 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Detect Sonar token
+        id: sonar_token
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          if [ -n "$SONAR_TOKEN" ]; then
+            echo "has_token=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_token=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: SonarCloud scan
         id: sonar_scan
-        if: ${{ secrets.SONAR_TOKEN != '' }}
+        if: ${{ steps.sonar_token.outputs.has_token == 'true' }}
         uses: SonarSource/sonarqube-scan-action@v5
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -174,7 +185,7 @@ jobs:
             -Dsonar.projectBaseDir=${{ env.SERVICE_PATH }}
 
       - name: SonarCloud skipped (missing token)
-        if: ${{ secrets.SONAR_TOKEN == '' }}
+        if: ${{ steps.sonar_token.outputs.has_token == 'false' }}
         run: |
           echo "SONAR_TOKEN não configurado. Etapa SonarCloud pulada." >> $GITHUB_STEP_SUMMARY
 
