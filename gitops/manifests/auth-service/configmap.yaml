@@ -5,7 +5,7 @@ metadata:
   namespace: togglemaster
 data:
   PORT: "8001"
-  DATABASE_URL: "postgresql://postgres:tm_pass_26@togglemaster-auth-postgres.c674hxhtj76m.us-east-1.rds.amazonaws.com:5432/auth_db"
-  POSTGRES_USER: "postgres"
-  POSTGRES_DB: "auth_db"
+  DATABASE_URL: "postgresql://tm_user:togglemaster123@togglemaster-auth-postgres.c674hxhtj76m.us-east-1.rds.amazonaws.com:5432/togglemaster_auth"
+  POSTGRES_USER: "tm_user"
+  POSTGRES_DB: "togglemaster_auth"
   POSTGRES_HOST: "togglemaster-auth-postgres.c674hxhtj76m.us-east-1.rds.amazonaws.com"
