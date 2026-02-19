@@ -18,6 +18,7 @@ on:
 
 permissions:
   contents: read
+  security-events: write
 
 concurrency:
   group: evaluation-service-ci-${{ github.ref }}
@@ -217,25 +218,42 @@ jobs:
         id: docker_build
         run: docker build -t evaluation-service:ci .
 
-      - name: Trivy Image Scan
-        id: run_trivy
+      - name: Trivy Image Scan (SARIF)
+        id: run_trivy_sarif
         uses: aquasecurity/trivy-action@0.20.0
         with:
           scan-type: image
           image-ref: evaluation-service:ci
+          severity: CRITICAL,HIGH,MEDIUM,LOW
+          format: sarif
+          output: ${{ env.SERVICE_PATH }}/trivy-results.sarif
+          exit-code: "0"
+
+      - name: Upload Trivy SARIF
+        id: upload_sarif
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ env.SERVICE_PATH }}/trivy-results.sarif
+
+      - name: Trivy Image Scan (JSON summary)
+        id: run_trivy_json
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          scan-type: image
+          image-ref: evaluation-service:ci
+          severity: CRITICAL,HIGH,MEDIUM,LOW
           format: json
-          output: trivy-results.json
-          severity: CRITICAL
+          output: ${{ env.SERVICE_PATH }}/trivy-results.json
           exit-code: "0"
 
       - name: Parse Trivy results
         id: parse_trivy
         run: |
-          TOTAL=$(jq '[.Results[]?.Vulnerabilities[]?] | length' trivy-results.json)
-          CRITICAL=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL")] | length' trivy-results.json)
-          HIGH=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "HIGH")] | length' trivy-results.json)
-          MEDIUM=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "MEDIUM")] | length' trivy-results.json)
-          LOW=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "LOW") ] | length' trivy-results.json)
+          TOTAL=$(jq '[.Results[]?.Vulnerabilities[]?] | length' ${{ env.SERVICE_PATH }}/trivy-results.json)
+          CRITICAL=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL")] | length' ${{ env.SERVICE_PATH }}/trivy-results.json)
+          HIGH=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "HIGH")] | length' ${{ env.SERVICE_PATH }}/trivy-results.json)
+          MEDIUM=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "MEDIUM")] | length' ${{ env.SERVICE_PATH }}/trivy-results.json)
+          LOW=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "LOW") ] | length' ${{ env.SERVICE_PATH }}/trivy-results.json)
 
           echo "total=$TOTAL" >> $GITHUB_OUTPUT
           echo "critical=$CRITICAL" >> $GITHUB_OUTPUT
@@ -255,7 +273,9 @@ jobs:
             echo "| Install gosec | ${{ steps.install_gosec.outcome }} |"
             echo "| Run gosec | ${{ steps.run_gosec.outcome }} |"
             echo "| Build Docker image | ${{ steps.docker_build.outcome }} |"
-            echo "| Run Trivy | ${{ steps.run_trivy.outcome }} |"
+            echo "| Run Trivy (SARIF) | ${{ steps.run_trivy_sarif.outcome }} |"
+            echo "| Upload SARIF | ${{ steps.upload_sarif.outcome }} |"
+            echo "| Run Trivy (JSON) | ${{ steps.run_trivy_json.outcome }} |"
             echo "| Parse Trivy results | ${{ steps.parse_trivy.outcome }} |"
             echo ""
             echo "#### Vulnerabilities found"

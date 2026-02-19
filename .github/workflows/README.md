@@ -65,7 +65,8 @@ Configurações comuns:
 - `flake8`
 - `bandit`
 - `docker build` (validação local da imagem)
-- `trivy-action` (image scan na imagem local gerada no workflow)
+- `trivy-action` (image scan com saída SARIF)
+- upload de SARIF para **GitHub Code Scanning**
 
 ### Go services
 
@@ -73,7 +74,8 @@ Configurações comuns:
 - `golangci-lint`
 - `gosec`
 - `docker build` (validação local da imagem)
-- `trivy-action` (image scan na imagem local gerada no workflow)
+- `trivy-action` (image scan com saída SARIF)
+- upload de SARIF para **GitHub Code Scanning**
 
 ---
 
