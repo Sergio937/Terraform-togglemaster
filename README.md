@@ -35,7 +35,7 @@ terraform apply -var-file=bootstrap.tfvars
 
 ```bash
 cd ../
-terraform init -reconfigure
+terraform init
 terraform plan
 terraform apply
 ```
