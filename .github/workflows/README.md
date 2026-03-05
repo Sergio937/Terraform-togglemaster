@@ -64,16 +64,19 @@ Configurações comuns:
 - `pytest`
 - `flake8`
 - `bandit`
-- `trivy-action` (filesystem scan)
-- `docker build` (somente validação local de build)
+- `docker build` (validação local da imagem)
+- `trivy-action` (image scan com saída SARIF)
+- upload de SARIF para **GitHub Code Scanning**
 
 ### Go services
 
 - `go build`, `go test`
 - `golangci-lint`
 - `gosec`
-- `trivy-action` (filesystem scan)
-- `docker build` (somente validação local de build)
+- `docker build` (validação local da imagem)
+- `trivy-action` (image scan com saída SARIF)
+- upload de SARIF para **GitHub Code Scanning**
+
 
 ---
 
