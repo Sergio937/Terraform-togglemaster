@@ -2,7 +2,7 @@
 set -euo pipefail
 
 AWS_REGION="${AWS_REGION:-us-east-1}"
-ACCOUNT_ID="${ACCOUNT_ID:-913430344673}"
+ACCOUNT_ID="${ACCOUNT_ID:-}"
 REPOSITORY_PREFIX="${REPOSITORY_PREFIX:-togglemaster}"
 TAG="${TAG:-v1.0.0}"
 SERVICE="${SERVICE:-all}"
@@ -41,7 +41,7 @@ Usage: ./scripts/build-push-ecr.sh [options]
 
 Options:
   --region <aws-region>                     Default: us-east-1
-  --account-id <aws-account-id>             Default: 913430344673
+  --account-id <aws-account-id>             Default: detectado automaticamente via AWS STS
   --repo-prefix <prefix>                    Default: togglemaster
   --service <service-name|all>              Ex: auth-service (default: all)
   --tag <image-tag>                         Tag de versão (ex: v1.0.0). Default: v1.0.0
@@ -85,13 +85,25 @@ SERVICES=(
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-REGISTRY="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
 
 echo "Tag de versão: ${TAG}"
 echo "Serviço selecionado: ${SERVICE}"
 
 echo "Validando credenciais AWS..."
 aws sts get-caller-identity >/dev/null
+
+if [[ -z "$ACCOUNT_ID" ]]; then
+  ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
+fi
+
+if ! docker info >/dev/null 2>&1; then
+  echo "Docker daemon indisponível."
+  echo "No Windows, abra o Docker Desktop e aguarde o status 'Engine running'."
+  echo "Depois rode novamente: ./build-push-ecr.sh --service ${SERVICE} --tag ${TAG}"
+  exit 1
+fi
+
+REGISTRY="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
 
 echo "Login no ECR: ${REGISTRY}"
 aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$REGISTRY"
