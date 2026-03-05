@@ -10,5 +10,5 @@ data:
   FLAG_SERVICE_URL: "http://flag-service:8002"
   TARGETING_SERVICE_URL: "http://targeting-service:8003"
   SERVICE_API_KEY: "tm_key_07e90c1e649a14fe36a4b63facb586ab7066626dba708f8b394eaef262c20246"
-  AWS_SQS_URL: "https://sqs.us-east-1.amazonaws.com/913430344673/togglemaster-queue"
+  AWS_SQS_URL: "https://sqs.us-east-1.amazonaws.com/158859177655/togglemaster-queue"
   AWS_REGION: "us-east-1"
